@@ -1,0 +1,11 @@
+#!/bin/sh
+# Blocks commits that contain secrets or personal data, or have a non-noreply author.
+. "$(dirname "$0")/patterns.sh"
+HITS=$(git diff --cached -U0 -- . ':!.githooks' | grep '^+' | grep -v '^+++' | filter | grep -inE "$PAT")
+if [ -n "$HITS" ]; then
+  echo "pre-commit: possible secret or personal data:"; echo "$HITS"; exit 1
+fi
+case "$(git config user.email)" in
+  *noreply*) ;;
+  *) echo "pre-commit: author email must be a noreply address"; exit 1 ;;
+esac

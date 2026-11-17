@@ -1,0 +1,61 @@
+# CLAUDE.md – Touch Bar Piano
+
+macOS app that turns the MacBook Pro Touch Bar into a piano (Swift, AppKit + SwiftUI, no Xcode project).
+Public repo: github.com/maylaender/touchbar-piano · current release: see `VERSION`.
+
+## Working with the owner
+- Answer in **German** (Swiss: no "ß", keyboard has no direct `[ ]`). Code, commits and README in English.
+- The owner values **short answers, low effort, efficiency**. Short plan first for bigger features, then build.
+- Owner tests on a **MacBook Pro 13" 2019 (Intel, Touch Bar)**. You usually cannot: say clearly what was and was not verified.
+
+## 🔒 Privacy – most important rule
+The repo is public. **No personal data, credentials or keys – ever, in any commit.**
+- Commit identity must stay anonymous:
+  `git config user.name "touchbar-piano" && git config user.email "touchbar-piano@users.noreply.github.com"`
+- Enable the shared hook once per clone: `git config core.hooksPath .githooks`
+- Create the local-only file `.git/info/private-patterns` (one regex per line) with the owner's first name,
+  last name and email domain – ask the owner or take them from the session context. **Never commit this file
+  or write these values anywhere in the repo.**
+- Run `.githooks/scan-history.sh` before every push and report the result to the owner.
+- Images: only plain PNG/GIF data – strip metadata (e.g. `iCCP`, text chunks) before committing.
+- If the hook fires on a harmless word, rename the code (e.g. a variable) instead of weakening the hook.
+
+## Build, test, release
+- No Mac in the cloud session → **GitHub Actions (`.github/workflows/build.yml`) is the build machine.**
+  Push a branch listed under `on.push.branches`, then poll `gh api repos/maylaender/touchbar-piano/actions/runs`.
+- CI steps: `build.sh` (universal x86_64 + arm64, macOS 11+, icon via `iconutil`) →
+  `PIANO_SELFTEST=1` (songs parse, MIDI round-trip) → `PIANO_SNAPSHOT=dir` (renders real screenshots,
+  artifact `snapshot`) → artifact `Piano.app` → release.
+- **Release = change `VERSION` and push.** The session cannot create releases or push tags itself;
+  the workflow creates tag + release when `VERSION` has no release yet. Versions containing `beta` become
+  pre-releases. Release text comes from `release-notes.md`.
+- Betas live on their own branch (e.g. `beta`, `v3`), stable work is merged into `main`.
+
+## Code map (`Sources/`)
+| File | Content |
+|---|---|
+| `main.swift` | App start, window, keyboard shortcuts (local event monitor), CI snapshot sequence |
+| `Model.swift` | `AppState` (ObservableObject): octave, instrument, pedal, metronome, recorder, playback, learn mode, library; localisation `L(en, de)`; 32 instruments; `KeyLayout` geometry |
+| `Audio.swift` | `AVAudioEngine` + 3 samplers (keys, drums, metronome) from macOS `gs_instruments.dls` |
+| `TouchBar.swift` | `PianoView` (multitouch), `BarProvider`, `SystemModal` = private API for full-width system-wide bar, Esc hidden |
+| `UI.swift` | SwiftUI window: header, live keyboard + falling notes, cards, shortcut bar |
+| `Songs.swift` | `Song` model, text song format, 8 built-in public-domain songs, MIDI reader/writer, `selfTest()` |
+
+Global singletons: `state` (AppState), `provider` (BarProvider).
+
+## Conventions
+- Keep it simple: plain `swiftc`, no packages, no Xcode project.
+- Every shortcut must also be clickable in the UI and listed in the window's shortcut bar + README.
+- UI strings always via `L("English", "Deutsch")`; German note names use H instead of B.
+- Shortcuts: ←→ octave · ↑↓ tempo · 1–8 instrument · M metronome · Shift pedal · R record · Space play · S sheet mode.
+- Swift 5 language mode, deployment target macOS 11 – avoid APIs newer than Big Sur
+  (e.g. no `Grid`, no `.onChange` with two parameters, no `NavigationSplitView`).
+- SwiftUI is not captured by `cacheDisplay` → CI window screenshots use `screencapture -l<windowNumber>`;
+  the CI screen is 1024×768, so snapshot mode renders the layout scaled (`snapshotScale`).
+- README images in `docs/` are generated from the CI `snapshot` artifact (hero = real window + Touch Bar
+  inside an HTML MacBook illustration rendered with Playwright). Always label illustrations as such.
+
+## Known limits / ideas
+- Not verifiable in CI: touch input, audio, pedal, drum sounds (no Touch Bar, no audio device).
+- Built-in songs were written from memory (simplified right hand) – owner may report wrong notes.
+- Ideas not built yet: velocity, two-hand songs, classic staff notation, notarised builds.
