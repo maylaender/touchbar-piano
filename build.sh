@@ -3,8 +3,8 @@
 set -e
 APP=Piano.app
 rm -rf "$APP" build && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" build/AppIcon.iconset
-swiftc -O -target x86_64-apple-macos10.15 main.swift -o build/Piano-x86_64
-swiftc -O -target arm64-apple-macos11    main.swift -o build/Piano-arm64
+swiftc -O -target x86_64-apple-macos11 Sources/*.swift -o build/Piano-x86_64
+swiftc -O -target arm64-apple-macos11    Sources/*.swift -o build/Piano-arm64
 lipo -create build/Piano-x86_64 build/Piano-arm64 -output "$APP/Contents/MacOS/Piano"
 for s in 16 32 128 256 512; do
   sips -z $s $s icon.png --out build/AppIcon.iconset/icon_${s}x${s}.png >/dev/null
@@ -22,7 +22,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VER</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
-  <key>LSMinimumSystemVersion</key><string>10.15</string>
+  <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
