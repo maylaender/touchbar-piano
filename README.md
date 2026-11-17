@@ -3,7 +3,7 @@
 Verwandelt die Touch Bar des MacBook Pro in ein Klavier mit 2 Oktaven.
 
 ![Touch Bar Piano – Illustration](docs/preview.png)
-<sub>Illustration (gerendertes Mockup, kein Screenshot). Tasten-Layout entspricht der App.</sub>
+<sub>Touch Bar und Fenster sind echte Renderings der App (auf einem GitHub-macOS-Runner via `PIANO_SNAPSHOT` erzeugt), das MacBook drumherum ist eine Illustration.</sub>
 
 ## Features
 - **2 Oktaven** (C4–C6): 15 weisse + 10 schwarze Tasten
