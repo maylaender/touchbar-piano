@@ -121,14 +121,83 @@ final class PianoView: NSView {
     }
 }
 
-// MARK: - Window content: status, help, keyboard shortcuts, Touch Bar provider
-final class HostView: NSView, NSTouchBarDelegate {
+// MARK: - Touch Bar factory (used for the system-wide bar and as fallback)
+final class BarProvider: NSObject, NSTouchBarDelegate {
     static let pianoID = NSTouchBarItem.Identifier("piano")
+    static let emptyID = NSTouchBarItem.Identifier("empty")
+
+    func make() -> NSTouchBar {
+        let bar = NSTouchBar()
+        bar.delegate = self
+        bar.defaultItemIdentifiers = [Self.pianoID]
+        bar.principalItemIdentifier = Self.pianoID
+        bar.escapeKeyReplacementItemIdentifier = Self.emptyID   // hide Esc (zero-width item)
+        return bar
+    }
+    func touchBar(_ bar: NSTouchBar, makeItemForIdentifier id: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
+        let item = NSCustomTouchBarItem(identifier: id)
+        if id == Self.emptyID {
+            let v = NSView()
+            v.widthAnchor.constraint(equalToConstant: 0).isActive = true
+            item.view = v
+            return item
+        }
+        let piano = PianoView(frame: .zero)
+        let w = piano.widthAnchor.constraint(equalToConstant: 1085)
+        w.priority = .defaultHigh   // take all available width
+        w.isActive = true
+        state.onChange.append { [weak piano] in piano?.needsDisplay = true }
+        item.view = piano
+        return item
+    }
+}
+let provider = BarProvider()
+
+// MARK: - BETA: private API (like Pock/MTMR) – full-width, system-wide Touch Bar
+enum SystemModal {
+    static var bar: NSTouchBar?
+    private static let cls: AnyClass = NSTouchBar.self
+
+    private static func call(_ names: [String], _ body: (Method, Selector) -> Void) -> Bool {
+        for n in names {
+            let sel = NSSelectorFromString(n)
+            if let m = class_getClassMethod(cls, sel) { body(m, sel); return true }
+        }
+        return false
+    }
+    /// Returns false if the private API is not available (then the normal app Touch Bar is used).
+    static func present() -> Bool {
+        // hide the small "x" close box on the left
+        if let h = dlopen("/System/Library/PrivateFrameworks/DFRFoundation.framework/DFRFoundation", RTLD_LAZY),
+           let f = dlsym(h, "DFRSystemModalShowsCloseBoxWhenFrontMost") {
+            typealias G = @convention(c) (Bool) -> Void
+            unsafeBitCast(f, to: G.self)(false)
+        }
+        let b = provider.make()
+        let ok = call(["presentSystemModalTouchBar:placement:systemTrayItemIdentifier:",
+                       "presentSystemModalFunctionBar:placement:systemTrayItemIdentifier:"]) { m, sel in
+            typealias F = @convention(c) (AnyClass, Selector, NSTouchBar, Int64, NSString?) -> Void
+            unsafeBitCast(method_getImplementation(m), to: F.self)(cls, sel, b, 1, "local.touchbar-piano" as NSString) // 1 = hide Control Strip
+        }
+        if ok { bar = b }
+        return ok
+    }
+    static func dismiss() {
+        guard let b = bar else { return }
+        _ = call(["dismissSystemModalTouchBar:", "dismissSystemModalFunctionBar:"]) { m, sel in
+            typealias F = @convention(c) (AnyClass, Selector, NSTouchBar) -> Void
+            unsafeBitCast(method_getImplementation(m), to: F.self)(cls, sel, b)
+        }
+    }
+}
+
+// MARK: - Window content: status, help, keyboard shortcuts, Touch Bar provider
+final class HostView: NSView {
     let status = NSTextField(labelWithString: "")
 
     override init(frame: NSRect) {
         super.init(frame: frame)
-        let title = NSTextField(labelWithString: "🎹 Touch Bar Piano")
+        let title = NSTextField(labelWithString: "🎹 Touch Bar Piano  β")
         title.font = .systemFont(ofSize: 20, weight: .bold)
         title.frame = NSRect(x: 20, y: frame.height - 46, width: 380, height: 28)
         status.font = .monospacedSystemFont(ofSize: 14, weight: .medium)
@@ -179,21 +248,7 @@ final class HostView: NSView, NSTouchBarDelegate {
     }
 
     override func makeTouchBar() -> NSTouchBar? {
-        let bar = NSTouchBar()
-        bar.delegate = self
-        bar.defaultItemIdentifiers = [Self.pianoID]
-        bar.principalItemIdentifier = Self.pianoID
-        return bar
-    }
-    func touchBar(_ bar: NSTouchBar, makeItemForIdentifier id: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
-        let item = NSCustomTouchBarItem(identifier: id)
-        let piano = PianoView(frame: .zero)
-        let w = piano.widthAnchor.constraint(equalToConstant: 1085)
-        w.priority = .defaultHigh   // shrink to available width
-        w.isActive = true
-        state.onChange.append { [weak piano] in piano?.needsDisplay = true }
-        item.view = piano
-        return item
+        SystemModal.bar == nil ? provider.make() : nil   // fallback if private API unavailable
     }
 }
 
@@ -209,10 +264,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(host)
+        if ProcessInfo.processInfo.environment["PIANO_SNAPSHOT"] == nil { _ = SystemModal.present() }
         NSApp.activate(ignoringOtherApps: true)
         if let dir = ProcessInfo.processInfo.environment["PIANO_SNAPSHOT"] { snapshot(to: dir) }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { true }
+    func applicationWillTerminate(_ n: Notification) { SystemModal.dismiss() }
 
     // CI only: renders the real views to PNG (C major chord, pedal down), then quits.
     func snapshot(to dir: String) {

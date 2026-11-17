@@ -1,7 +1,7 @@
 name: build
 on:
   push:
-    branches: [main]
+    branches: [main, beta]
   workflow_dispatch:
 permissions:
   contents: write
@@ -32,4 +32,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V=$(cat VERSION)
-          gh release view "$V" >/dev/null 2>&1 || gh release create "$V" Piano.app.zip --title "$V" --notes-file release-notes.md --target "$GITHUB_SHA"
+          PRE=""; if echo "$V" | grep -q beta; then PRE="--prerelease"; fi
+          gh release view "$V" >/dev/null 2>&1 || gh release create "$V" Piano.app.zip --title "$V" --notes-file release-notes.md --target "$GITHUB_SHA" $PRE
