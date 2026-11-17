@@ -70,10 +70,18 @@ enum Snapshot {
         v.cacheDisplay(in: v.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     }
+    /// SwiftUI is not captured by cacheDisplay -> real window screenshot.
+    static func capture(_ window: NSWindow, _ path: String) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        p.arguments = ["-x", "-o", "-l\(window.windowNumber)", path]
+        try? p.run()
+        p.waitUntilExit()
+    }
     static func run(window: NSWindow, dir: String) {
+        print("screen:", NSScreen.main?.frame.size ?? .zero, "scale:", NSScreen.main?.backingScaleFactor ?? 0)
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         let piano = PianoView(frame: NSRect(x: 0, y: 0, width: 1085, height: 30))
-        let frame = window.contentView?.superview ?? window.contentView!
         func song(_ t: String) -> Song { state.library.first { $0.title.contains(t) } ?? state.library[0] }
         let drums = instruments.first { $0.isDrums }!.id
 
@@ -89,7 +97,7 @@ enum Snapshot {
         ]
         // animation frames: Ode to Joy in sheet mode
         steps.append(("prep", { state.stopRecording(); state.metronome = false; state.pressed = []; state.select(song("Ode")); state.sheetMode = true }))
-        for i in 0..<48 { steps.append((String(format: "f%02d", i), { state.preview(song("Ode"), at: Double(i) * 0.25) })) }
+        for i in 0..<36 { steps.append((String(format: "f%02d", i), { state.preview(song("Ode"), at: Double(i) * 0.33) })) }
 
         func next() {
             guard !steps.isEmpty else { NSApp.terminate(nil); return }
@@ -99,7 +107,7 @@ enum Snapshot {
                 piano.needsDisplay = true
                 if name != "prep" {
                     save(piano, "\(dir)/touchbar_\(name).png")
-                    save(frame, "\(dir)/window_\(name).png")
+                    capture(window, "\(dir)/window_\(name).png")
                 }
                 next()
             }
