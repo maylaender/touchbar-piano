@@ -11,7 +11,7 @@ final class Synth {
         engine.connect(sampler, to: engine.mainMixerNode, format: nil)
         let dls = URL(fileURLWithPath: "/System/Library/Components/CoreAudio.component/Contents/Resources/gs_instruments.dls")
         try? sampler.loadSoundBankInstrument(at: dls, program: 0, // 0 = Acoustic Grand Piano
-                                             bankMSB: UInt8(kAUSampleBankMSB), bankLSB: UInt8(kAUSampleBankLSB))
+                                             bankMSB: 0x79, bankLSB: 0  // melodic bank)
         try? engine.start()
     }
     func on(_ n: UInt8)  { sampler.startNote(n, withVelocity: 100, onChannel: 0) }
