@@ -1,0 +1,13 @@
+name: build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./build.sh
+      - run: ditto -c -k --keepParent Piano.app Piano.app.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Piano.app
+          path: Piano.app.zip
