@@ -12,6 +12,17 @@ jobs:
       - uses: actions/checkout@v4
       - run: ./build.sh
       - run: ditto -c -k --keepParent Piano.app Piano.app.zip
+      - name: Snapshot (run app, render real views)
+        continue-on-error: true
+        run: |
+          PIANO_SNAPSHOT="$PWD/snapshot" ./Piano.app/Contents/MacOS/Piano & sleep 15; kill $! 2>/dev/null || true
+          ls -la snapshot
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snapshot
+          path: snapshot
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: Piano.app

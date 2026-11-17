@@ -122,6 +122,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(host)
         NSApp.activate(ignoringOtherApps: true)
+        if let dir = ProcessInfo.processInfo.environment["PIANO_SNAPSHOT"] { snapshot(to: dir) }
+    }
+
+    // CI only: renders the real views to PNG (C major chord pressed), then quits.
+    func snapshot(to dir: String) {
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        func save(_ v: NSView, _ name: String) {
+            let s = v.bounds.size
+            guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(s.width * 2), pixelsHigh: Int(s.height * 2),
+                                             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                             colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return }
+            rep.size = s
+            v.cacheDisplay(in: v.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: dir + "/" + name))
+        }
+        let piano = PianoView(frame: NSRect(x: 0, y: 0, width: 1004, height: 30))
+        piano.active = [1: 60, 2: 64, 3: 67]
+        save(piano, "touchbar.png")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            if let frame = self.window.contentView?.superview { save(frame, "window.png") }
+            NSApp.terminate(nil)
+        }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { true }
 }
