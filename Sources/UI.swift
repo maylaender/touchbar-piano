@@ -352,6 +352,7 @@ struct Tile: View {
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundColor(selected ? .white : .primary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Spacer(minLength: 0)
                 if let k = shortcut {
                     Text(k).font(.system(size: 10, weight: .bold, design: .rounded))
