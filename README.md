@@ -2,7 +2,7 @@
 
 Turns the MacBook Pro Touch Bar into a 2-octave piano (C4–C6, multitouch).
 
-**Install:** download `Piano.app` from the latest [Actions](../../actions) run, unzip, then:
+**Install:** download `Piano.app.zip` from the latest [Release](../../releases/latest), unzip, then:
 
 ```sh
 xattr -dr com.apple.quarantine Piano.app
