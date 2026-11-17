@@ -56,7 +56,7 @@ struct Card<Content: View>: View {
                     .foregroundColor(.white)
                     .frame(width: 22, height: 22)
                     .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(gradient([color.opacity(0.75), color])))
-                Text(title).font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text(title).font(.system(size: 13, weight: .semibold, design: .rounded)).lineLimit(1).layoutPriority(1)
                 Spacer(minLength: 4)
                 ForEach(keys, id: \.self) { KeyCap(text: $0) }
             }
@@ -300,8 +300,8 @@ struct MetronomeCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Toggle("", isOn: $s.metronome).toggleStyle(SwitchToggleStyle()).labelsHidden()
-                    Text("\(Int(s.bpm)) BPM").font(.system(size: 15, weight: .bold, design: .rounded))
-                    Spacer()
+                    Text("\(Int(s.bpm)) BPM").font(.system(size: 15, weight: .bold, design: .rounded)).fixedSize()
+                    Spacer(minLength: 4)
                     HStack(spacing: 5) {
                         ForEach(0..<4, id: \.self) { i in
                             Circle()
@@ -466,7 +466,7 @@ struct SongsCard: View {
                         }
                     }
                 }
-                .frame(height: 170)
+                .frame(height: 150)
                 HStack(spacing: 6) {
                     ActionButton(L("Play", "Abspielen"), symbol: "play.fill", color: .orange) { s.playDemo() }
                     ActionButton(L("Practice", "Üben"), symbol: "graduationcap.fill", color: .blue) { s.practice() }
@@ -509,37 +509,44 @@ struct ShortcutBar: View {
     }
 }
 
-// MARK: - Window content
+// MARK: - Window content (3 columns, fits a 13" MacBook)
 struct ContentView: View {
     @ObservedObject var s: AppState
-    var body: some View {
-        ZStack {
-            if s.snapshotMode { Color(NSColor.windowBackgroundColor) } else { VisualEffect().edgesIgnoringSafeArea(.all) }
-            ScrollView {
+    var layout: some View {
+        VStack(spacing: 14) {
+            Header(s: s)
+            KeyboardPanel(s: s)
+            HStack(alignment: .top, spacing: 14) {
                 VStack(spacing: 14) {
-                    Header(s: s)
-                    KeyboardPanel(s: s)
-                    HStack(alignment: .top, spacing: 14) {
-                        VStack(spacing: 14) {
-                            HStack(spacing: 14) {
-                                OctaveCard(s: s)
-                                PedalCard(s: s)
-                                MetronomeCard(s: s)
-                            }
-                            .fixedSize(horizontal: false, vertical: true)
-                            InstrumentCard(s: s)
-                        }
-                        VStack(spacing: 14) {
-                            RecorderCard(s: s)
-                            SongsCard(s: s)
-                        }
-                        .frame(width: 340)
-                    }
-                    ShortcutBar()
+                    OctaveCard(s: s)
+                    PedalCard(s: s)
+                    MetronomeCard(s: s)
                 }
-                .padding(20)
+                .frame(width: 300)
+                VStack(spacing: 14) {
+                    InstrumentCard(s: s)
+                    RecorderCard(s: s)
+                }
+                SongsCard(s: s).frame(width: 340)
             }
+            .fixedSize(horizontal: false, vertical: true)
+            ShortcutBar()
         }
-        .frame(minWidth: 960, minHeight: 560)
+        .padding(20)
+    }
+    var body: some View {
+        if s.snapshotMode {   // CI screen is only 1024x768: render at design size, scaled down
+            layout.frame(width: 1240, height: 860, alignment: .top)
+                .scaleEffect(snapshotScale)
+                .frame(width: 1240 * snapshotScale, height: 860 * snapshotScale)
+                .background(Color(NSColor.windowBackgroundColor))
+        } else {
+            ZStack {
+                VisualEffect().edgesIgnoringSafeArea(.all)
+                ScrollView { layout }
+            }
+            .frame(minWidth: 1100, minHeight: 560)
+        }
     }
 }
+let snapshotScale: CGFloat = 0.82

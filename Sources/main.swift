@@ -13,7 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var monitor: Any?
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        window = PianoWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 820),
+        let size = state.snapshotMode ? NSSize(width: 1240 * snapshotScale, height: 860 * snapshotScale) : NSSize(width: 1240, height: 820)
+        window = PianoWindow(contentRect: NSRect(origin: .zero, size: size),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
         window.title = "Touch Bar Piano"
@@ -97,7 +98,7 @@ enum Snapshot {
         ]
         // animation frames: Ode to Joy in sheet mode
         steps.append(("prep", { state.stopRecording(); state.metronome = false; state.pressed = []; state.select(song("Ode")); state.sheetMode = true }))
-        for i in 0..<36 { steps.append((String(format: "f%02d", i), { state.preview(song("Ode"), at: Double(i) * 0.33) })) }
+        for i in 0..<36 { steps.append((String(format: "f%02d", i), { state.preview(song("Ode"), at: 0.2 + Double(i) * 0.33) })) }
 
         func next() {
             guard !steps.isEmpty else { NSApp.terminate(nil); return }
