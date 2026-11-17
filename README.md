@@ -1,59 +1,184 @@
-<img src="icon.png" width="96" align="right" alt="App-Icon">
+<p align="center"><img src="icon.png" width="128" alt="Touch Bar Piano icon"></p>
 
-# Touch Bar Piano
+<h1 align="center">Touch Bar Piano</h1>
 
-Verwandelt die Touch Bar des MacBook Pro in ein Klavier mit 2 Oktaven.
+<p align="center">
+  Turn your MacBook Pro's Touch Bar into a full-width piano – with 32 instruments,<br>
+  a recorder, classical songs and a learn mode with falling notes.
+</p>
 
-![Touch Bar Piano](docs/preview.png)
-<sub>Touch Bar und Fenster sind echte Renderings der App (auf einem GitHub-macOS-Runner via `PIANO_SNAPSHOT` erzeugt), das MacBook drumherum ist eine Illustration.</sub>
+<p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/maylaender/touchbar-piano?label=release&color=0a84ff" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS-11%2B-black?logo=apple" alt="macOS 11+">
+  <img src="https://img.shields.io/badge/Intel%20%2B%20Apple%20Silicon-universal-555" alt="Universal">
+  <a href="../../releases"><img src="https://img.shields.io/github/downloads/maylaender/touchbar-piano/total?color=34c759" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-orange" alt="MIT license"></a>
+</p>
 
-## Features
-- **2 Oktaven** auf der Touch Bar, mit Notennamen (C D E F G A H, jedes C mit Oktave)
-- **Multitouch** – Akkorde spielen, über die Tasten gleiten wechselt den Ton
-- **Pedal** – Shift halten = Haltepedal wie am Klavier
-- **Oktave umschalten** – C1 bis C9
-- **8 Instrumente** – Piano, E-Piano, Orgel, Gitarre, Streicher, Synth, Vibraphon, Harfe
-- **Metronom** – 40–240 BPM, betonte Eins
-- Klang aus der eingebauten macOS-Soundbank, keine Zusatzdateien
-- **Universal** – Intel und Apple Silicon, ab macOS 10.15
+<p align="center"><a href="../../releases/latest/download/Piano.app.zip"><b>⬇︎ Download Piano.app</b></a></p>
 
-## Tasten
-| Taste | Funktion |
+<p align="center"><img src="docs/hero.png" alt="Touch Bar Piano on a MacBook Pro" width="860"></p>
+
+<p align="center"><img src="docs/demo.gif" alt="Ode to Joy in sheet mode – notes fall onto the keys, Touch Bar lights up" width="760"></p>
+
+> Window and Touch Bar images are real renders of the app, captured automatically on a GitHub macOS runner. Only the MacBook around them is an illustration.
+
+## ✨ Features
+
+| | |
 |---|---|
-| ← → | Oktave wechseln |
-| Shift (halten) | Pedal |
-| 1 – 8 | Instrument |
-| M | Metronom an/aus |
-| ↑ ↓ | Tempo ±5 BPM |
+| 🎹 **Full-width Touch Bar** | Two octaves with note names, multitouch chords, slide to glide. Esc and Control Strip are hidden. |
+| 🎻 **32 instruments** | Piano, organ, strings, choir, sax, music box, steel drums … from the built-in macOS sound bank. |
+| 🥁 **Drum mode** | 15 labelled pads (kick, snare, hats, toms, cymbals …) and 3 drum kits. |
+| 🦶 **Sustain pedal** | Hold <kbd>Shift</kbd> – just like the pedal on a real piano. |
+| ⏱ **Metronome** | 40–240 BPM with an accented first beat. |
+| ⏺ **Recorder** | Record, play back and watch the keys light up. Recordings are kept between launches. |
+| 🎼 **Classics built in** | Mozart, Beethoven, Bach and Brahms – press play and watch. |
+| 📖 **Sheet mode** | Falling notes show what to play next. *Learn mode* waits until you hit the right key. |
+| 🎛 **MIDI** | Import `.mid` files, export your recordings to GarageBand & co. |
+| 🌍 **English & German** | Follows your macOS language. |
 
-Alles wird im App-Fenster angezeigt.
+## 🚀 Quick start
 
-## Installation
-1. **[Piano.app.zip herunterladen](../../releases/latest/download/Piano.app.zip)** und entpacken
-2. Im Terminal (die App ist nicht von Apple signiert):
+1. **[Download `Piano.app.zip`](../../releases/latest/download/Piano.app.zip)** and unzip it.
+2. The app is not signed by Apple, so allow it once in Terminal:
    ```sh
    xattr -dr com.apple.quarantine Piano.app
    open Piano.app
    ```
-3. Für volle Breite: **Systemeinstellungen → Tastatur → Touch Bar → „App-Steuerelemente“**, *Control Strip* aus.
+3. Play! Everything works with the mouse, the keyboard shortcuts or the Touch Bar.
 
-Die Klaviertasten erscheinen, solange das Fenster „Touch Bar Piano“ im Vordergrund ist.
+## 📸 Screenshots
 
-## Wie es funktioniert
-| Teil | Technik |
+| Learn mode – falling notes | Drum mode | Recording |
+|---|---|---|
+| <img src="docs/window-sheet.png" alt="Sheet mode"> | <img src="docs/window-drums.png" alt="Drum mode"> | <img src="docs/window-record.png" alt="Recorder"> |
+
+<img src="docs/touchbar-main.png" alt="Touch Bar piano with C major chord">
+<img src="docs/touchbar-drums.png" alt="Touch Bar drum pads">
+
+## ⌨️ Keyboard shortcuts
+
+| Key | Action |
 |---|---|
-| Touch Bar | `NSTouchBar` + eigene `NSView` mit `allowedTouchTypes = .direct` (öffentliche API) |
-| Ton | `AVAudioEngine` + `AVAudioUnitSampler` mit `gs_instruments.dls` (General MIDI) |
-| Pedal | MIDI Control Change 64 (Sustain) |
-| Metronom | zweiter Sampler mit der Percussion-Bank (Woodblock) |
-| Build | `build.sh` → `swiftc` für x86_64 + arm64 → `lipo` → `.app` mit Icon |
-| Release | GitHub Actions baut bei jedem Push; neue `VERSION` → neues Release |
+| <kbd>←</kbd> <kbd>→</kbd> | Octave down / up |
+| <kbd>⇧ Shift</kbd> (hold) | Sustain pedal |
+| <kbd>1</kbd> – <kbd>8</kbd> | Classic instruments |
+| <kbd>M</kbd> | Metronome on / off |
+| <kbd>↑</kbd> <kbd>↓</kbd> | Tempo ±5 BPM |
+| <kbd>R</kbd> | Start / stop recording |
+| <kbd>Space</kbd> | Play / stop the selected song |
+| <kbd>S</kbd> | Sheet mode on / off |
 
-## Selbst bauen
+Every shortcut is also shown – and clickable – in the app window.
+
+## 🎻 Instruments
+
+| Group | Instruments |
+|---|---|
+| Classic | Piano, E-Piano, Organ, Guitar, Strings, Synth, Vibraphone, Harp |
+| Keys & Bells | Harpsichord, Celesta, Glockenspiel, Music Box, Marimba, Xylophone, Accordion |
+| Strings & Winds | Violin, Cello, Pizzicato, Choir, Trumpet, Saxophone, Flute, Pan Flute |
+| Synth & Fun | Synth Pad, Synth Bass, Steel Drums, Ocarina, Harmonica, Contrabass |
+| Drums | Drum Kit, Electronic Kit, Brush Kit |
+
+## 🎼 Built-in songs
+
+| Composer | Songs |
+|---|---|
+| Mozart | Eine kleine Nachtmusik · Rondo alla Turca · Sonata facile K. 545 · Ah vous dirai-je, Maman |
+| Beethoven | Für Elise · Ode to Joy |
+| Bach / Petzold | Minuet in G |
+| Brahms | Lullaby (Wiegenlied) |
+
+All public domain, simplified to a right-hand melody that fits two octaves.
+
+## ✍️ Write your own songs
+
+Songs are plain text files – import them with **Import…** (see [`docs/example-song.txt`](docs/example-song.txt)):
+
+```text
+# title: Frère Jacques
+# composer: Traditional
+# bpm: 120
+C4 D4 E4 C4 | C4 D4 E4 C4 | E4 F4 G4:2 | E4 F4 G4:2
+```
+
+| Syntax | Meaning |
+|---|---|
+| `C4`, `F#5`, `Bb3` | Note (`H` works as German B) – one beat |
+| `E4:0.5`, `G4:2` | Note with length in beats |
+| `C4+E4+G4` | Chord |
+| `R`, `R:2` | Rest |
+| `\|` | Bar line (ignored, just for reading) |
+
+Standard **MIDI files** (`.mid`) work too. Pull requests with new songs are welcome!
+
+## 💻 Compatibility
+
+Every Mac with a Touch Bar running **macOS 11 Big Sur or later**:
+
+- MacBook Pro 13" (2016–2020, M1 2020, M2 2022)
+- MacBook Pro 15" (2016–2019)
+- MacBook Pro 16" (2019)
+
+## ❓ FAQ
+
+<details><summary><b>“Piano.app can't be opened because Apple cannot check it”</b></summary>
+
+The app is open source but not notarized by Apple. Run `xattr -dr com.apple.quarantine Piano.app` once, or right-click the app → **Open**.
+</details>
+
+<details><summary><b>The Touch Bar doesn't show the piano</b></summary>
+
+Quit other Touch Bar tools (BetterTouchTool, Pock, MTMR) and start the app again. If needed, set **System Settings → Keyboard → Touch Bar shows → App Controls**.
+</details>
+
+<details><summary><b>I hear no sound</b></summary>
+
+Check the volume and the output device. The app uses the General MIDI sound bank that ships with macOS – nothing to install.
+</details>
+
+<details><summary><b>Does the piano stay on the Touch Bar when I switch apps?</b></summary>
+
+Yes – it uses the same private macOS API as Pock and MTMR. Close the window or press <kbd>⌘Q</kbd> to give the Touch Bar back. Keyboard shortcuts only work while the window is active.
+</details>
+
+<details><summary><b>Where are my recordings stored?</b></summary>
+
+In `~/Library/Application Support/Touch Bar Piano/songs.json`. Delete a song by hovering it in the list and clicking the trash icon.
+</details>
+
+## 🛠 How it works
+
+| Part | Technology |
+|---|---|
+| Touch Bar | `NSTouchBar` + custom `NSView` with direct touches; system-wide via private `presentSystemModalTouchBar` |
+| Sound | `AVAudioEngine` + 3× `AVAudioUnitSampler` with macOS' `gs_instruments.dls` |
+| Pedal | MIDI Control Change 64 |
+| Window | SwiftUI in an `NSWindow` |
+| Songs | Own text format + minimal MIDI reader/writer |
+| CI | GitHub Actions builds, self-tests (songs + MIDI round-trip), renders screenshots and releases |
+
+```
+Sources/
+├── main.swift      App start, keyboard shortcuts, CI snapshots
+├── Model.swift     State, instruments, recorder, playback, learn mode
+├── Audio.swift     Samplers
+├── TouchBar.swift  Touch Bar view + private API
+├── UI.swift        SwiftUI window
+└── Songs.swift     Built-in songs, text format, MIDI
+```
+
+## 🔨 Build from source
+
 ```sh
-./build.sh      # braucht Xcode Command Line Tools
+./build.sh      # needs Xcode Command Line Tools
 open Piano.app
 ```
 
-## Neue Version veröffentlichen
-`VERSION` ändern (z. B. `v3`), committen, pushen – der Workflow erstellt Tag + Release automatisch.
+**Release a new version:** change `VERSION` (e.g. `v4`), commit and push to `main` – the workflow builds, tests and publishes the release.
+
+## 📄 License
+
+[MIT](LICENSE) © touchbar-piano contributors · See the [CHANGELOG](CHANGELOG.md) for all versions.
