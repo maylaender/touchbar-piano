@@ -5,6 +5,8 @@ struct SongNote: Codable, Equatable {
     var dur: Double              // seconds
     var midi: UInt8
     var drum: Bool = false
+    var acc: Bool? = nil         // true = accompaniment (left hand / inner voices)
+    var isMelody: Bool { acc != true && !drum }
 }
 enum SongSource: String, Codable, CaseIterable {
     case builtIn, recording, imported
@@ -72,92 +74,48 @@ enum SongText {
     }
 }
 
-// MARK: - Built-in songs (public domain, simplified right-hand melodies)
-let builtInSongs: [Song] = [
-"""
-# title: Eine kleine Nachtmusik
-# composer: Mozart
-# bpm: 260
-G5:2 R D5 G5:2 R D5 | G5 D5 G5 B5 D6:2 R:2 | C6:2 R A5 C6:2 R A5 | C6 A5 F#5 A5 D5:2 R:2
-G5:2 R D5 G5:2 R D5 | G5 D5 G5 B5 D6:2 R:2 | C6:2 R A5 C6:2 R A5 | C6 A5 F#5 A5 G5:4
-""",
-"""
-# title: Rondo alla Turca
-# composer: Mozart
-# bpm: 480
-B4 A4 G#4 A4 C5:4 | D5 C5 B4 C5 E5:4 | F5 E5 D#5 E5 B5 A5 G#5 A5 B5 A5 G#5 A5 C6:8
-A5:2 C6:2 B5:2 A5:2 G#5:2 A5:2 E5:2 F5:2 | D5:2 C5:4 B4:4 A4:8
-""",
-"""
-# title: Sonata facile K. 545
-# composer: Mozart
-# bpm: 110
-C5:2 E5 G5 | B4:1.5 C5:0.25 D5:0.25 C5:2 | A5:2 G5 C6 | G5 F5:0.5 E5:0.5 F5 E5
-A4:0.25 B4:0.25 C5:0.25 D5:0.25 E5:0.25 F5:0.25 G5:0.25 A5:0.25 G5:0.25 F5:0.25 E5:0.25 D5:0.25 C5:0.25 B4:0.25 A4:0.25 G4:0.25 | C5:2
-""",
-"""
-# title: Ah vous dirai-je, Maman
-# composer: Mozart
-# bpm: 100
-C4 C4 G4 G4 | A4 A4 G4:2 | F4 F4 E4 E4 | D4 D4 C4:2
-G4 G4 F4 F4 | E4 E4 D4:2 | G4 G4 F4 F4 | E4 E4 D4:2
-C4 C4 G4 G4 | A4 A4 G4:2 | F4 F4 E4 E4 | D4 D4 C4:2
-""",
-"""
-# title: Für Elise
-# composer: Beethoven
-# bpm: 150
-E5 D#5 | E5 D#5 E5 B4 D5 C5 | A4:2 R C4 E4 A4 | B4:2 R E4 G#4 B4 | C5:2 R E4 E5 D#5
-E5 D#5 E5 B4 D5 C5 | A4:2 R C4 E4 A4 | B4:2 R E4 C5 B4 | A4:4
-""",
-"""
-# title: Ode to Joy
-# composer: Beethoven
-# bpm: 120
-E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | E4:1.5 D4:0.5 D4:2
-E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4:1.5 C4:0.5 C4:2
-D4 D4 E4 C4 | D4 E4:0.5 F4:0.5 E4 C4 | D4 E4:0.5 F4:0.5 E4 D4 | C4 D4 G3:2
-E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4:1.5 C4:0.5 C4:2
-""",
-"""
-# title: Minuet in G
-# composer: Bach / Petzold
-# bpm: 120
-D5 G4:0.5 A4:0.5 B4:0.5 C5:0.5 | D5 G4 G4 | E5 C5:0.5 D5:0.5 E5:0.5 F#5:0.5 | G5 G4 G4
-C5 D5:0.5 C5:0.5 B4:0.5 A4:0.5 | B4 C5:0.5 B4:0.5 A4:0.5 G4:0.5 | F#4 G4:0.5 A4:0.5 B4:0.5 G4:0.5 | A4:3
-D5 G4:0.5 A4:0.5 B4:0.5 C5:0.5 | D5 G4 G4 | E5 C5:0.5 D5:0.5 E5:0.5 F#5:0.5 | G5 G4 G4
-C5 D5:0.5 C5:0.5 B4:0.5 A4:0.5 | B4 C5:0.5 B4:0.5 A4:0.5 G4:0.5 | A4 B4:0.5 A4:0.5 G4:0.5 F#4:0.5 | G4:3
-""",
-"""
-# title: Lullaby (Wiegenlied)
-# composer: Brahms
-# bpm: 100
-E4:0.5 E4:0.5 | G4:2 E4:0.5 E4:0.5 | G4:2 E4:0.5 G4:0.5 | C5 B4:1.5 A4:0.5 | A4 G4 D4:0.5 E4:0.5
-F4 D4 D4:0.5 E4:0.5 | F4:2 D4:0.5 F4:0.5 | B4:0.5 A4:0.5 G4 B4 | C5:2 C4:0.5 C4:0.5
-C5:2 A4:0.5 F4:0.5 | G4:2 E4:0.5 C4:0.5 | F4 G4 A4 | G4:2 C4:0.5 C4:0.5
-C5:2 A4:0.5 F4:0.5 | G4:2 E4:0.5 C4:0.5 | F4 E4 D4 | C4:3
-""",
-].compactMap { SongText.parse($0) }
+// MARK: - Built-in songs (complete pieces from verified public-domain sources, see Songs/SOURCES.md)
+let builtInTable: [(file: String, title: String, composer: String)] = [
+    ("nachtmusik", "Eine kleine Nachtmusik (1st mvt.)", "Mozart"),
+    ("rondo-alla-turca", "Rondo alla Turca", "Mozart"),
+    ("sonata-facile", "Sonata facile K. 545 (1st mvt.)", "Mozart"),
+    ("ah-vous-dirai-je", "Ah vous dirai-je, Maman (Theme & Var. 1)", "Mozart"),
+    ("fur-elise", "Für Elise", "Beethoven"),
+    ("ode-to-joy", "Ode to Joy", "Beethoven"),
+    ("minuet-in-g", "Minuet in G", "Bach / Petzold"),
+    ("wiegenlied", "Lullaby (Wiegenlied)", "Brahms"),
+]
+let builtInSongs: [Song] = builtInTable.compactMap { t in
+    guard let url = Bundle.main.url(forResource: t.file, withExtension: "mid", subdirectory: "Songs"),
+          let data = try? Data(contentsOf: url),
+          var song = MIDIFile.read(data, title: t.title) else { return nil }
+    song.composer = t.composer
+    song.source = .builtIn
+    return song
+}
 
 // MARK: - Standard MIDI files (minimal reader/writer)
 enum MIDIFile {
-    /// Type-0 file, 480 ticks per quarter at 120 BPM (1 s = 960 ticks). Drums go to channel 10.
+    /// Type-1 file: track 1 = melody, track 2 = accompaniment. 480 ticks/quarter at 120 BPM (1 s = 960 ticks).
     static func write(_ song: Song, program: UInt8) -> Data {
         func ticks(_ s: Double) -> Int { Int((s * 960).rounded()) }
-        var ev: [(t: Int, bytes: [UInt8])] = []
-        for n in song.notes {
-            let ch: UInt8 = n.drum ? 9 : 0
-            ev.append((ticks(n.start), [0x90 | ch, n.midi, 100]))
-            ev.append((ticks(n.start + n.dur), [0x80 | ch, n.midi, 0]))
+        func track(_ notes: [SongNote], header: [UInt8]) -> [UInt8] {
+            var ev: [(t: Int, bytes: [UInt8])] = []
+            for n in notes {
+                let ch: UInt8 = n.drum ? 9 : 0
+                ev.append((ticks(n.start), [0x90 | ch, n.midi, 100]))
+                ev.append((ticks(n.start + n.dur), [0x80 | ch, n.midi, 0]))
+            }
+            ev.sort { $0.t != $1.t ? $0.t < $1.t : ($0.bytes[0] & 0xF0) < ($1.bytes[0] & 0xF0) } // note-offs first
+            var trk = header, last = 0
+            for e in ev { trk += vlq(e.t - last) + e.bytes; last = e.t }
+            trk += vlq(0) + [0xFF, 0x2F, 0x00]
+            return Array("MTrk".utf8) + be(trk.count, 4) + trk
         }
-        ev.sort { $0.t != $1.t ? $0.t < $1.t : ($0.bytes[0] & 0xF0) < ($1.bytes[0] & 0xF0) } // note-offs first
-        var trk: [UInt8] = vlq(0) + [0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]          // tempo 500000 us
-        trk += vlq(0) + [0xC0, program]
-        var last = 0
-        for e in ev { trk += vlq(e.t - last) + e.bytes; last = e.t }
-        trk += vlq(0) + [0xFF, 0x2F, 0x00]
-        var d: [UInt8] = Array("MThd".utf8) + be(6, 4) + [0, 0, 0, 1] + be(480, 2)
-        d += Array("MTrk".utf8) + be(trk.count, 4) + trk
+        let mel = song.notes.filter { $0.acc != true }, acc = song.notes.filter { $0.acc == true }
+        let tracks = [track(mel, header: vlq(0) + [0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20] + vlq(0) + [0xC0, program])]
+            + (acc.isEmpty ? [] : [track(acc, header: vlq(0) + [0xC0, program])])
+        let d: [UInt8] = Array("MThd".utf8) + be(6, 4) + [0, 1] + be(tracks.count, 2) + be(480, 2) + tracks.joined()
         return Data(d)
     }
     static func vlq(_ value: Int) -> [UInt8] {
@@ -182,8 +140,8 @@ enum MIDIFile {
         p = 8 + hlen
         guard div > 0, div & 0x8000 == 0 else { return nil }
         var tempo = 500_000.0, tempoSet = false
-        var raw: [(tick: Int, ch: Int, note: Int, on: Bool)] = []
-        for _ in 0..<ntrks where p + 8 <= b.count {
+        var raw: [(tick: Int, ch: Int, note: Int, on: Bool, trk: Int)] = []
+        for trk in 0..<ntrks where p + 8 <= b.count {
             let id = tag(), len = num(4), end = min(p + len, b.count)
             guard id == "MTrk" else { p = end; continue }
             var tick = 0, status = 0
@@ -202,20 +160,23 @@ enum MIDIFile {
                     let kind = s & 0xF0
                     if kind == 0xC0 || kind == 0xD0 { p += 1; continue }
                     let n = byte(), v = byte()
-                    if kind == 0x90 || kind == 0x80 { raw.append((tick, s & 0x0F, n, kind == 0x90 && v > 0)) }
+                    if kind == 0x90 || kind == 0x80 { raw.append((tick, s & 0x0F, n, kind == 0x90 && v > 0, trk)) }
                 }
             }
             p = end
         }
         let secPerTick = tempo / 1_000_000 / Double(div)
-        var open: [Int: [Double]] = [:]
+        let noteTracks = Array(Set(raw.map(\.trk))).sorted()
+        let melodyTrack = noteTracks.count > 1 ? noteTracks.first : nil
+        var open: [Int: [(t: Double, trk: Int)]] = [:]
         var notes: [SongNote] = []
         for e in raw.sorted(by: { ($0.tick, $0.on ? 1 : 0) < ($1.tick, $1.on ? 1 : 0) }) {
             let key = e.ch * 128 + e.note, t = Double(e.tick) * secPerTick
-            if e.on { open[key, default: []].append(t) }
+            if e.on { open[key, default: []].append((t, e.trk)) }
             else if var starts = open[key], !starts.isEmpty {
                 let s = starts.removeFirst(); open[key] = starts
-                notes.append(SongNote(start: s, dur: max(0.05, t - s), midi: UInt8(e.note), drum: e.ch == 9))
+                let acc: Bool? = melodyTrack != nil && s.trk != melodyTrack ? true : nil
+                notes.append(SongNote(start: s.t, dur: max(0.05, t - s.t), midi: UInt8(e.note), drum: e.ch == 9, acc: acc))
             }
         }
         notes.sort { $0.start < $1.start }
@@ -223,14 +184,18 @@ enum MIDIFile {
     }
 }
 
-/// CI self test: songs parse, MIDI round-trips.
+/// CI self test: built-in songs load, MIDI round-trips (incl. melody/accompaniment split).
 func selfTest() -> Bool {
-    var ok = builtInSongs.count == 8
-    print("songs:", builtInSongs.map { "\($0.title) (\($0.notes.count))" }.joined(separator: ", "))
+    var ok = builtInSongs.count == builtInTable.count
     for s in builtInSongs {
+        let mel = s.notes.filter(\.isMelody).count, acc = s.notes.count - mel
+        print(String(format: "song: %@ – %d melody, %d accompaniment, %@", s.title, mel, acc, fmt(s.length)))
+        if mel < 40 || acc < 40 { print("FAIL too few notes", s.title); ok = false }
         guard let back = MIDIFile.read(MIDIFile.write(s, program: 0), title: s.title) else { print("FAIL read", s.title); ok = false; continue }
-        let same = back.notes.count == s.notes.count && zip(back.notes, s.notes).allSatisfy { $0.midi == $1.midi && abs($0.start - $1.start) < 0.01 }
-        if !same { print("FAIL roundtrip", s.title, back.notes.count, s.notes.count); ok = false }
+        let order: (SongNote, SongNote) -> Bool = { ($0.midi, $0.start) < ($1.midi, $1.start) }
+        let a = s.notes.sorted(by: order), b = back.notes.sorted(by: order)
+        let same = a.count == b.count && zip(a, b).allSatisfy { $0.midi == $1.midi && abs($0.start - $1.start) < 0.002 && $0.isMelody == $1.isMelody }
+        if !same { print("FAIL roundtrip", s.title, a.count, b.count); ok = false }
     }
     if SongText.midi("C4") != 60 || SongText.midi("A4") != 69 || SongText.midi("Bb3") != 58 || SongText.midi("H4") != 71 { print("FAIL note names"); ok = false }
     print(ok ? "SELFTEST OK" : "SELFTEST FAILED")

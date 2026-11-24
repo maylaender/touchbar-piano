@@ -1,7 +1,7 @@
 name: build
 on:
   push:
-    branches: [main, beta, v3]
+    branches: [main, beta, v3, v3.1]
   workflow_dispatch:
 permissions:
   contents: write

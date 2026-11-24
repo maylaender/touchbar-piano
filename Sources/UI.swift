@@ -139,7 +139,7 @@ struct KeyboardPanel: View {
     @ObservedObject var s: AppState
     var body: some View {
         VStack(spacing: 6) {
-            if s.sheetMode { SheetLane(s: s).frame(height: 150) }
+            if s.sheetMode { SheetLane(s: s).frame(height: 120) }
             MiniKeyboard(s: s).frame(height: 86)
         }
         .padding(10)
@@ -238,7 +238,8 @@ struct SheetLane: View {
                         if let sp = KeyLayout.span(of: Int(n.midi), base: s.base) {
                             let len = max(6, CGFloat(n.dur) * pps)
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(gradient(sp.black ? [Color(red: 1, green: 0.5, blue: 0.15), Color(red: 0.9, green: 0.32, blue: 0)] : orangeKey))
+                                .fill(!n.isMelody ? gradient([Color.white.opacity(0.28), Color.white.opacity(0.18)])
+                                      : gradient(sp.black ? [Color(red: 1, green: 0.5, blue: 0.15), Color(red: 0.9, green: 0.32, blue: 0)] : orangeKey))
                                 .frame(width: max(4, sp.w * w - 4), height: len)
                                 .offset(x: sp.x * w + 2, y: h - CGFloat(n.start - s.sheetTime) * pps - len)
                                 .opacity(n.start + n.dur < s.sheetTime ? 0.25 : 1)
@@ -253,7 +254,7 @@ struct SheetLane: View {
         }
     }
     private func visible(_ song: Song, ahead: Double) -> [SongNote] {
-        song.notes.filter { !$0.drum && $0.start < s.sheetTime + ahead && $0.start + $0.dur > s.sheetTime - 0.6 }
+        song.notes.filter { !$0.drum && (s.bothHands || $0.isMelody) && $0.start < s.sheetTime + ahead && $0.start + $0.dur > s.sheetTime - 0.6 }
     }
 }
 
@@ -467,7 +468,7 @@ struct SongsCard: View {
                         }
                     }
                 }
-                .frame(height: 150)
+                .frame(height: 120)
                 HStack(spacing: 6) {
                     ActionButton(L("Play", "Abspielen"), symbol: "play.fill", color: .orange) { s.playDemo() }
                     ActionButton(L("Practice", "Üben"), symbol: "graduationcap.fill", color: .blue) { s.practice() }
@@ -475,6 +476,8 @@ struct SongsCard: View {
                 }
                 Toggle(L("Sheet mode – falling notes", "Noten-Modus – fallende Noten"), isOn: $s.sheetMode)
                 Toggle(L("Wait for me (learn mode)", "Auf mich warten (Lernmodus)"), isOn: $s.waitForMe)
+                Toggle(L("Follow octave", "Oktave mitwandern"), isOn: $s.followOctave)
+                Toggle(L("Both hands", "Beide Hände"), isOn: $s.bothHands)
                 HStack(spacing: 8) {
                     Text(L("Speed", "Tempo")).foregroundColor(.secondary)
                     Slider(value: $s.speed, in: 0.5...1.5, step: 0.05)
