@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.2-beta
+- Touch Bar keyboard uses exactly the visible width – rightmost key no longer cut off in full-width mode
+
 ## v3.1
 - All 8 built-in songs are now complete pieces with both hands, taken from verified public-domain editions
   (Mutopia Project, Breitkopf & Härtel 1878) instead of being written from memory – fixes wrong notes in

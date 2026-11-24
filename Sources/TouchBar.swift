@@ -14,9 +14,20 @@ final class PianoView: NSView {
     }
     required init?(coder: NSCoder) { fatalError() }
 
+    /// The part of the view that is really visible on the Touch Bar. In the full-width (private API) mode the
+    /// bar can be a few points narrower than the requested width – keys are laid out in this area only.
+    private var area: NSRect {
+        let v = visibleRect
+        let r = v.width > 10 ? v : bounds
+        return NSRect(x: r.minX, y: bounds.minY, width: max(1, r.width - 2), height: bounds.height)
+    }
+    override func layout() { super.layout(); needsDisplay = true }
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); needsDisplay = true }
+
     private func note(at p: NSPoint) -> Int? {
-        guard bounds.contains(p), bounds.width > 0 else { return nil }
-        let x = p.x / bounds.width
+        let a = area
+        guard p.x >= a.minX, p.x < a.maxX, p.y >= a.minY, p.y < a.maxY else { return nil }
+        let x = (p.x - a.minX) / a.width
         return state.instrument.isDrums ? KeyLayout.drumPad(x: x) : KeyLayout.note(x: x, yTop: 1 - p.y / bounds.height, base: state.base)
     }
 
@@ -48,20 +59,21 @@ final class PianoView: NSView {
         func color(_ n: Int, white: Bool) -> NSColor {
             lit.contains(n) ? .systemBlue : hints.contains(n) ? .systemOrange : (white ? NSColor(white: 0.92, alpha: 1) : .black)
         }
+        let a = area
         if state.instrument.isDrums {
-            let pads = KeyLayout.drumPads, pw = bounds.width / CGFloat(pads.count)
+            let pads = KeyLayout.drumPads, pw = a.width / CGFloat(pads.count)
             for (i, p) in pads.enumerated() {
-                let r = NSRect(x: pw * CGFloat(i) + 1, y: 0, width: pw - 2, height: bounds.height)
+                let r = NSRect(x: a.minX + pw * CGFloat(i) + 1, y: 0, width: pw - 2, height: bounds.height)
                 (lit.contains(p.note) ? NSColor.systemBlue : NSColor(white: 0.24, alpha: 1)).setFill()
                 NSBezierPath(roundedRect: r, xRadius: 4, yRadius: 4).fill()
                 label(p.name, in: r, white: true, y: (bounds.height - 10) / 2)
             }
             return
         }
-        let kw = bounds.width / CGFloat(KeyLayout.whiteCount)
+        let kw = a.width / CGFloat(KeyLayout.whiteCount)
         for i in 0..<KeyLayout.whiteCount {
             let n = KeyLayout.white(i, base: state.base)
-            let r = NSRect(x: kw * CGFloat(i) + 1, y: 0, width: kw - 2, height: bounds.height)
+            let r = NSRect(x: a.minX + kw * CGFloat(i) + 1, y: 0, width: kw - 2, height: bounds.height)
             color(n, white: true).setFill()
             NSBezierPath(roundedRect: r, xRadius: 3, yRadius: 3).fill()
             label(i % 7 == 0 ? "C\(n / 12 - 1)" : KeyLayout.names[i % 7], in: r, white: lit.contains(n) || hints.contains(n))
@@ -70,7 +82,7 @@ final class PianoView: NSView {
             let n = KeyLayout.white(i, base: state.base) + 1
             let w = kw * KeyLayout.blackWidth, h = bounds.height * KeyLayout.blackHeight
             color(n, white: false).setFill()
-            NSBezierPath(roundedRect: NSRect(x: kw * CGFloat(i + 1) - w / 2, y: bounds.height - h, width: w, height: h), xRadius: 2, yRadius: 2).fill()
+            NSBezierPath(roundedRect: NSRect(x: a.minX + kw * CGFloat(i + 1) - w / 2, y: bounds.height - h, width: w, height: h), xRadius: 2, yRadius: 2).fill()
         }
     }
 }
