@@ -116,6 +116,7 @@ final class AppState: ObservableObject {
     @Published var startInstrument: Int { didSet { defaults.set(startInstrument, forKey: "startInstrument") } }
     var onTouchBarModeChange: () -> Void = {}
     func applyAppearance() {
+        guard NSApp != nil else { return }        // AppState is created before NSApplication
         NSApp.appearance = appearance == 1 ? NSAppearance(named: .aqua) : appearance == 2 ? NSAppearance(named: .darkAqua) : nil
     }
     @Published var learnLeft: Bool { didSet { defaults.set(learnLeft, forKey: "learnLeft") } }
