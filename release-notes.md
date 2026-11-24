@@ -1,7 +1,10 @@
-⚠️ **Beta / test build** – for the stable version see v3.1.
+**Touch Bar Piano v3.3** – practise smarter. Universal (Intel + Apple Silicon), macOS 11+.
 
-**v3.2-beta:**
-- Touch Bar: the keyboard now uses exactly the visible width, so the rightmost key is no longer cut off in full-width mode (without Esc)
+- 🎛 **Tracks dialog** for MIDI files: choose melody, accompaniment or muted for every track – with an automatic suggestion
+- ⏯ **Pause, jump ±5 s, progress bar** and an **A–B loop** for tricky passages (Space · `,` `.` · `L`)
+- 🙌 **Learn the left hand**, **count-in**, **accompaniment volume**
+- 🎨 Hands in colour: melody blue, accompaniment purple – on the Touch Bar and in the window
+- 🎹 Touch Bar: the rightmost key is no longer cut off in full-width mode
 
 **Install:** download `Piano.app.zip`, unzip, then in Terminal:
 
@@ -9,3 +12,5 @@
 xattr -dr com.apple.quarantine Piano.app
 open Piano.app
 ```
+
+[CHANGELOG](../../blob/main/CHANGELOG.md) · Song sources: [Songs/SOURCES.md](../../blob/main/Songs/SOURCES.md)

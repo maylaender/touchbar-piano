@@ -4,10 +4,9 @@ macOS app that turns the MacBook Pro Touch Bar into a piano (Swift, AppKit + Swi
 Public repo: github.com/maylaender/touchbar-piano · current release: see `VERSION`.
 
 ## Current status (update this section when it changes)
-- Stable: **v3.1** on `main` (complete two-hand songs, follow-octave and both-hands toggles).
-- Waiting for the owner's test: **v3.2-beta** on branch `v3.2-beta` (pre-release) – Touch Bar keys are laid out in
-  the *visible* area (`PianoView.area`) so the rightmost key is no longer cut off in full-width mode.
-  If the owner confirms: merge into `main`, set `VERSION` to `v3.2`, update `CHANGELOG.md` + `release-notes.md`.
+- Stable: **v3.3** on `main` – tracks dialog, transport (pause, ±5 s, progress bar, A–B loop), count-in,
+  left-hand practice, accompaniment volume, hand colours; includes the visible-area Touch Bar fix from v3.2-beta.
+- Not yet confirmed on real hardware: the Touch Bar fix (rightmost key) and all audio/touch behaviour.
 
 ## Working with the owner
 - Answer in **German** (Swiss: no "ß", keyboard has no direct `[ ]`). Code, commits and README in English.
@@ -47,8 +46,8 @@ The repo is public. **No personal data, credentials or keys – ever, in any com
 | `Model.swift` | `AppState` (ObservableObject): octave, instrument, pedal, metronome, recorder, playback, learn mode, `followOctave`, `bothHands`, library (user songs in `~/Library/Application Support/Touch Bar Piano/songs.json`); localisation `L(en, de)`; 32 instruments; `KeyLayout` geometry |
 | `Audio.swift` | `AVAudioEngine` + 3 samplers (keys, drums, metronome) from macOS `gs_instruments.dls` |
 | `TouchBar.swift` | `PianoView` (multitouch), `BarProvider`, `SystemModal` = private API for full-width system-wide bar, Esc hidden |
-| `UI.swift` | SwiftUI window: header, live keyboard + falling notes, cards, shortcut bar |
-| `Songs.swift` | `Song` model (`SongNote.acc` = accompaniment), text song format, built-in song table, MIDI reader/writer, `selfTest()` |
+| `UI.swift` | SwiftUI window: header, live keyboard + falling notes + `Transport`, cards (incl. `PracticeCard`), `TracksSheet`, shortcut bar |
+| `Songs.swift` | `Song`/`SongNote`/`SongPart` (roles melody/accompaniment/muted), `Parts.auto`/`Parts.apply` (track split + top voice), text song format, built-in song table, MIDI reader/writer, `selfTest()` |
 
 Global singletons: `state` (AppState), `provider` (BarProvider).
 
@@ -67,7 +66,8 @@ IMSLP shows a bot check to automated downloads – do not bypass it; ask the own
 - Keep it simple: plain `swiftc`, no packages, no Xcode project.
 - Every shortcut must also be clickable in the UI and listed in the window's shortcut bar + README.
 - UI strings always via `L("English", "Deutsch")`; German note names use H instead of B.
-- Shortcuts: ←→ octave · ↑↓ tempo · 1–8 instrument · M metronome · Shift pedal · R record · Space play · S sheet mode.
+- Shortcuts: ←→ octave · ↑↓ tempo · 1–8 instrument · M metronome · Shift pedal · R record · Space play/pause ·
+  S sheet mode · `,` `.` ±5 s · L A–B loop. Shortcuts are ignored while a sheet (e.g. Tracks) is open.
 - Swift 5 language mode, deployment target macOS 11 – avoid APIs newer than Big Sur
   (e.g. no `Grid`, no `.onChange` with two parameters, no `NavigationSplitView`).
 - SwiftUI is not captured by `cacheDisplay` → CI window screenshots use `screencapture -l<windowNumber>`;

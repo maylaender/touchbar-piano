@@ -35,7 +35,9 @@
 | ⏺ **Recorder** | Record, play back and watch the keys light up. Recordings are kept between launches. |
 | 🎼 **Classics built in** | Complete pieces by Mozart, Beethoven, Bach and Brahms with both hands – press play and watch. |
 | 📖 **Sheet mode** | Falling notes show what to play next. *Learn mode* waits until you hit the right key. |
-| 🎛 **MIDI** | Import `.mid` files, export your recordings to GarageBand & co. |
+| 🎛 **MIDI** | Import `.mid` files and choose per track: melody, accompaniment or muted. Export your recordings to GarageBand & co. |
+| ⏯ **Transport** | Pause, jump ±5 s, drag the progress bar, repeat a passage with an **A–B loop**. |
+| 🙌 **Practice tools** | Learn the left hand, count-in, accompaniment volume, hands in different colours (melody blue, accompaniment purple). |
 | 🌍 **English & German** | Follows your macOS language. |
 
 ## 🚀 Quick start
@@ -67,7 +69,9 @@
 | <kbd>M</kbd> | Metronome on / off |
 | <kbd>↑</kbd> <kbd>↓</kbd> | Tempo ±5 BPM |
 | <kbd>R</kbd> | Start / stop recording |
-| <kbd>Space</kbd> | Play / stop the selected song |
+| <kbd>Space</kbd> | Play / pause the selected song |
+| <kbd>,</kbd> <kbd>.</kbd> | Jump 5 s back / forward |
+| <kbd>L</kbd> | A–B loop: set start, set end, clear |
 | <kbd>S</kbd> | Sheet mode on / off |
 
 Every shortcut is also shown – and clickable – in the app window.
@@ -116,7 +120,7 @@ C4 D4 E4 C4 | C4 D4 E4 C4 | E4 F4 G4:2 | E4 F4 G4:2
 | `R`, `R:2` | Rest |
 | `\|` | Bar line (ignored, just for reading) |
 
-Standard **MIDI files** (`.mid`) work too – the first track with notes becomes the melody, all other tracks the accompaniment. Pull requests with new songs are welcome!
+Standard **MIDI files** (`.mid`) work too. After importing, the **Tracks** dialog shows every track (or every channel for single-track files) with its instrument, note count and range – choose *Melody*, *Accompaniment* or *Muted* for each. The app suggests a split automatically (highest part = melody) and can keep only the top voice of the melody so you play one note at a time. Pull requests with new songs are welcome!
 
 ## 💻 Compatibility
 

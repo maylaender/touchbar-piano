@@ -528,6 +528,8 @@ struct Transport: View {
             Text(fmt(min(s.sheetTime, len))).frame(width: 40, alignment: .trailing)
             ZStack {
                 GeometryReader { g in
+                    Capsule().fill(Color.white.opacity(0.22)).frame(width: g.size.width, height: 4)
+                        .offset(y: g.size.height / 2 - 2)
                     if let a = s.loopA {
                         let b = s.loopB ?? min(a + 0.4, len)
                         RoundedRectangle(cornerRadius: 3).fill(Color(NSColor.systemTeal).opacity(0.45))

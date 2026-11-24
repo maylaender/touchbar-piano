@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.3
+- **Tracks dialog** for MIDI files: melody / accompaniment / muted per track (or per channel for single-track files), automatic suggestion, "top voice only" option
+- **Transport**: pause/resume (Space), ±5 s (`,` `.`), progress bar to jump anywhere, **A–B loop** (`L`)
+- **Practice**: learn the left hand, count-in (1 bar), accompaniment volume, hands in different colours
+- Touch Bar keyboard uses exactly the visible width – rightmost key no longer cut off in full-width mode (from v3.2-beta)
+
 ## v3.2-beta
 - Touch Bar keyboard uses exactly the visible width – rightmost key no longer cut off in full-width mode
 
