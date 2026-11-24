@@ -57,7 +57,7 @@ final class PianoView: NSView {
             s.draw(at: NSPoint(x: r.midX - size.width / 2, y: y), withAttributes: a)
         }
         func color(_ n: Int, white: Bool) -> NSColor {
-            lit.contains(n) ? .systemBlue : hints.contains(n) ? .systemOrange : (white ? NSColor(white: 0.92, alpha: 1) : .black)
+            lit.contains(n) ? (state.accLit.contains(n) ? .systemPurple : .systemBlue) : hints.contains(n) ? .systemOrange : (white ? NSColor(white: 0.92, alpha: 1) : .black)
         }
         let a = area
         if state.instrument.isDrums {

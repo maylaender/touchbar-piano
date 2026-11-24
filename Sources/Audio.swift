@@ -27,7 +27,7 @@ final class Synth {
         if i.isDrums { load(drums, program: i.program, bank: percussionBank) }
         else { load(keys, program: i.program, bank: melodicBank) }
     }
-    func on(_ n: UInt8, drum: Bool) { (drum ? drums : keys).startNote(n, withVelocity: 100, onChannel: 0) }
+    func on(_ n: UInt8, drum: Bool, velocity: UInt8 = 100) { (drum ? drums : keys).startNote(n, withVelocity: max(1, velocity), onChannel: 0) }
     func off(_ n: UInt8, drum: Bool) { (drum ? drums : keys).stopNote(n, onChannel: 0) }
     func pedal(_ down: Bool) { keys.sendController(64, withValue: down ? 127 : 0, onChannel: 0) } // CC64 = sustain
     func tick(_ accent: Bool) { click.startNote(accent ? 76 : 77, withVelocity: accent ? 127 : 90, onChannel: 0) } // wood blocks

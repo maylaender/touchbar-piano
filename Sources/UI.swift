@@ -16,6 +16,7 @@ struct VisualEffect: NSViewRepresentable {
 func gradient(_ c: [Color]) -> LinearGradient { LinearGradient(gradient: Gradient(colors: c), startPoint: .top, endPoint: .bottom) }
 let blueKey = [Color(red: 0.38, green: 0.68, blue: 1), Color(red: 0.04, green: 0.45, blue: 0.95)]
 let orangeKey = [Color(red: 1, green: 0.76, blue: 0.35), Color(red: 1, green: 0.55, blue: 0.1)]
+let purpleKey = [Color(red: 0.78, green: 0.55, blue: 1), Color(red: 0.55, green: 0.3, blue: 0.9)]
 
 struct KeyCap: View {
     let text: String
@@ -126,7 +127,8 @@ struct Header: View {
                     if s.pedal { Pill(text: L("Pedal", "Pedal"), color: .green) }
                     if s.metronome { Pill(text: "♩ \(Int(s.bpm))", color: .pink) }
                     if s.isRecording { Pill(text: "● REC " + fmt(s.recordTime), color: .red) }
-                    if s.playing != nil { Pill(text: "▶︎ " + (s.selectedSong?.title ?? ""), color: .orange) }
+                    if s.playing != nil { Pill(text: (s.paused ? "⏸ " : "▶︎ ") + (s.selectedSong?.title ?? ""), color: .orange) }
+                    if s.loopA != nil { Pill(text: s.loopB == nil ? L("Loop: A …", "Schleife: A …") : L("Loop A–B", "Schleife A–B"), color: Color(NSColor.systemTeal)) }
                 }
             }
             Spacer()
@@ -141,6 +143,7 @@ struct KeyboardPanel: View {
         VStack(spacing: 6) {
             if s.sheetMode { SheetLane(s: s).frame(height: 120) }
             MiniKeyboard(s: s).frame(height: 86)
+            Transport(s: s)
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(gradient([Color(white: 0.13), Color(white: 0.05)])))
@@ -176,7 +179,7 @@ struct MiniKeyboard: View {
         return s.instrument.isDrums ? KeyLayout.drumPad(x: x) : KeyLayout.note(x: x, yTop: p.y / size.height, base: s.base)
     }
     private func fill(_ n: Int, white: Bool) -> LinearGradient {
-        if s.pressed.contains(n) { return gradient(blueKey) }
+        if s.pressed.contains(n) { return gradient(s.accLit.contains(n) ? purpleKey : blueKey) }
         if s.hints.contains(n) { return gradient(orangeKey) }
         return white ? gradient([Color.white, Color(white: 0.86)]) : gradient([Color(white: 0.3), Color.black])
     }
@@ -238,7 +241,7 @@ struct SheetLane: View {
                         if let sp = KeyLayout.span(of: Int(n.midi), base: s.base) {
                             let len = max(6, CGFloat(n.dur) * pps)
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(!n.isMelody ? gradient([Color.white.opacity(0.28), Color.white.opacity(0.18)])
+                                .fill(n.isMelody == s.learnLeft ? gradient(purpleKey.map { $0.opacity(0.55) })
                                       : gradient(sp.black ? [Color(red: 1, green: 0.5, blue: 0.15), Color(red: 0.9, green: 0.32, blue: 0)] : orangeKey))
                                 .frame(width: max(4, sp.w * w - 4), height: len)
                                 .offset(x: sp.x * w + 2, y: h - CGFloat(n.start - s.sheetTime) * pps - len)
@@ -254,7 +257,7 @@ struct SheetLane: View {
         }
     }
     private func visible(_ song: Song, ahead: Double) -> [SongNote] {
-        song.notes.filter { !$0.drum && (s.bothHands || $0.isMelody) && $0.start < s.sheetTime + ahead && $0.start + $0.dur > s.sheetTime - 0.6 }
+        song.notes.filter { !$0.drum && $0.muted != true && (s.bothHands || (s.learnLeft ? $0.isAccompaniment : $0.isMelody)) && $0.start < s.sheetTime + ahead && $0.start + $0.dur > s.sheetTime - 0.6 }
     }
 }
 
@@ -475,15 +478,9 @@ struct SongsCard: View {
                     ActionButton(L("Stop", "Stopp"), symbol: "stop.fill", color: .gray) { s.stopPlayback() }
                 }
                 Toggle(L("Sheet mode – falling notes", "Noten-Modus – fallende Noten"), isOn: $s.sheetMode)
-                Toggle(L("Wait for me (learn mode)", "Auf mich warten (Lernmodus)"), isOn: $s.waitForMe)
-                Toggle(L("Follow octave", "Oktave mitwandern"), isOn: $s.followOctave)
-                Toggle(L("Both hands", "Beide Hände"), isOn: $s.bothHands)
-                HStack(spacing: 8) {
-                    Text(L("Speed", "Tempo")).foregroundColor(.secondary)
-                    Slider(value: $s.speed, in: 0.5...1.5, step: 0.05)
-                    Text("\(Int((s.speed * 100).rounded())) %").frame(width: 42, alignment: .trailing)
-                }
-                .font(.system(size: 12))
+                ActionButton(L("Tracks …", "Spuren …"), symbol: "slider.horizontal.3", color: .purple) { s.editingTracks = true }
+                    .disabled((s.selectedSong?.parts?.count ?? 0) < 2)
+                    .opacity((s.selectedSong?.parts?.count ?? 0) < 2 ? 0.4 : 1)
                 HStack(spacing: 6) {
                     ActionButton(L("Import…", "Importieren …"), symbol: "square.and.arrow.down", color: Color(NSColor.systemTeal)) { s.importSongs() }
                     ActionButton(L("Export MIDI", "MIDI exportieren"), symbol: "square.and.arrow.up", color: Color(NSColor.systemIndigo)) { s.exportMIDI() }
@@ -493,11 +490,146 @@ struct SongsCard: View {
     }
 }
 
+struct PracticeCard: View {
+    @ObservedObject var s: AppState
+    var body: some View {
+        Card(L("Practice", "Üben"), symbol: "graduationcap", color: .blue) {
+            VStack(alignment: .leading, spacing: 7) {
+                Toggle(L("Wait for me (learn mode)", "Auf mich warten (Lernmodus)"), isOn: $s.waitForMe)
+                Toggle(L("Learn the left hand", "Linke Hand üben"), isOn: $s.learnLeft)
+                Toggle(L("Follow octave", "Oktave mitwandern"), isOn: $s.followOctave)
+                Toggle(L("Both hands", "Beide Hände"), isOn: $s.bothHands)
+                Toggle(L("Count-in (1 bar)", "Einzähler (1 Takt)"), isOn: $s.countIn)
+                HStack(spacing: 8) {
+                    Text(L("Speed", "Tempo")).foregroundColor(.secondary).frame(width: 78, alignment: .leading)
+                    Slider(value: $s.speed, in: 0.5...1.5, step: 0.05)
+                    Text("\(Int((s.speed * 100).rounded())) %").frame(width: 42, alignment: .trailing)
+                }
+                HStack(spacing: 8) {
+                    Text(L("Accomp.", "Begleitung")).foregroundColor(.secondary).frame(width: 78, alignment: .leading)
+                    Slider(value: $s.accVolume, in: 0.1...1)
+                    Text("\(Int((s.accVolume * 100).rounded())) %").frame(width: 42, alignment: .trailing)
+                }
+            }
+            .font(.system(size: 12))
+        }
+    }
+}
+
+/// Play/pause, ±5 s, progress bar with A–B loop, count-in.
+struct Transport: View {
+    @ObservedObject var s: AppState
+    var body: some View {
+        let len = max(s.selectedSong?.length ?? 0, 0.1)
+        return HStack(spacing: 10) {
+            TransportButton(symbol: "gobackward.5") { s.skip(-5) }
+            TransportButton(symbol: s.playing != nil && !s.paused ? "pause.fill" : "play.fill", big: true) { s.togglePlay() }
+            TransportButton(symbol: "goforward.5") { s.skip(5) }
+            Text(fmt(min(s.sheetTime, len))).frame(width: 40, alignment: .trailing)
+            ZStack {
+                GeometryReader { g in
+                    if let a = s.loopA {
+                        let b = s.loopB ?? min(a + 0.4, len)
+                        RoundedRectangle(cornerRadius: 3).fill(Color(NSColor.systemTeal).opacity(0.45))
+                            .frame(width: max(3, CGFloat((b - a) / len) * g.size.width), height: 8)
+                            .offset(x: CGFloat(a / len) * g.size.width, y: g.size.height / 2 - 4)
+                    }
+                }
+                Slider(value: Binding(get: { min(s.sheetTime, len) }, set: { s.seek(to: $0) }), in: 0...len)
+            }
+            Text(fmt(len)).frame(width: 40, alignment: .leading)
+            Button(action: { s.toggleLoop() }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "repeat")
+                    Text(s.loopA == nil ? "A–B" : s.loopB == nil ? "A …" : "A–B ✕")
+                }
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Capsule().fill(s.loopA != nil ? Color(NSColor.systemTeal) : Color.white.opacity(0.12)))
+            }
+            .buttonStyle(PlainButtonStyle())
+            if let c = s.countdown {
+                Text("\(c)").font(.system(size: 18, weight: .heavy, design: .rounded)).foregroundColor(.orange).frame(width: 22)
+            }
+        }
+        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+        .foregroundColor(.white)
+        .padding(.horizontal, 4)
+    }
+}
+struct TransportButton: View {
+    let symbol: String
+    var big = false
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: big ? 13 : 11, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: big ? 30 : 24, height: big ? 30 : 24)
+                .background(Circle().fill(big ? Color.orange : Color.white.opacity(0.12)))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+/// Choose melody / accompaniment / muted for every track of a MIDI file.
+struct TracksSheet: View {
+    @ObservedObject var s: AppState
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L("Tracks", "Spuren") + " – " + (s.selectedSong?.title ?? ""))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+            Text(L("Melody = what you learn on the Touch Bar (right hand). Accompaniment = played along (left hand).",
+                   "Melodie = was du auf der Touch Bar übst (rechte Hand). Begleitung = wird mitgespielt (linke Hand)."))
+                .font(.system(size: 11.5)).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+            if let song = s.selectedSong, let parts = song.parts {
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(parts.indices, id: \.self) { i in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(parts[i].name).font(.system(size: 13, weight: .semibold))
+                                    Text(info(song, i)).font(.system(size: 11)).foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Picker("", selection: Binding(get: { parts[i].role }, set: { s.setRole($0, part: i) })) {
+                                    ForEach(PartRole.allCases, id: \.self) { Text($0.title).tag($0) }
+                                }
+                                .pickerStyle(SegmentedPickerStyle()).labelsHidden().frame(width: 300)
+                            }
+                            .padding(10)
+                            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
+                        }
+                    }
+                }
+                .frame(maxHeight: 320)
+                Toggle(L("Melody = top voice only (one note at a time)", "Melodie = nur oberste Stimme (ein Ton aufs Mal)"),
+                       isOn: Binding(get: { song.topVoice ?? true }, set: { s.setTopVoice($0) }))
+            }
+            HStack {
+                Button(L("Automatic", "Automatisch")) { s.autoRoles() }
+                Spacer()
+                Button(L("Done", "Fertig")) { s.editingTracks = false }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 600)
+    }
+    private func info(_ song: Song, _ i: Int) -> String {
+        let notes = song.notes.filter { $0.part == i }
+        let names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", isGerman ? "H" : "B"]
+        func nm(_ m: Int) -> String { names[m % 12] + "\(m / 12 - 1)" }
+        let range = notes.isEmpty || song.parts?[i].drums == true ? "" : " · " + nm(Int(notes.map(\.midi).min()!)) + "–" + nm(Int(notes.map(\.midi).max()!))
+        return "\(song.parts?[i].instrumentName ?? "") · \(notes.count) " + L("notes", "Noten") + range
+    }
+}
+
 struct ShortcutBar: View {
     let items: [(String, String)] = [
         ("← →", L("Octave", "Oktave")), ("↑ ↓", L("Tempo", "Tempo")), ("1 – 8", L("Instrument", "Instrument")),
         ("M", L("Metronome", "Metronom")), ("⇧ Shift", L("Pedal (hold)", "Pedal (halten)")), ("R", L("Record", "Aufnahme")),
-        ("Space", L("Play / Stop", "Abspielen / Stopp")), ("S", L("Sheet mode", "Noten-Modus")),
+        ("Space", L("Play / Pause", "Abspielen / Pause")), ("S", L("Sheet mode", "Noten-Modus")),
+        (", .", L("−5 s / +5 s", "−5 s / +5 s")), ("L", L("A–B loop", "A–B-Schleife")),
     ]
     var body: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: 4), alignment: .leading, spacing: 8) {
@@ -529,7 +661,11 @@ struct ContentView: View {
                 .frame(width: 300)
                 VStack(spacing: 14) {
                     InstrumentCard(s: s)
-                    RecorderCard(s: s)
+                    HStack(alignment: .top, spacing: 14) {
+                        RecorderCard(s: s)
+                        PracticeCard(s: s)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 SongsCard(s: s).frame(width: 340)
             }
@@ -540,9 +676,9 @@ struct ContentView: View {
     }
     var body: some View {
         if s.snapshotMode {   // CI screen is only 1024x768: render at design size, scaled down
-            layout.frame(width: 1240, height: 860, alignment: .top)
+            layout.frame(width: 1240, height: snapshotHeight, alignment: .top)
                 .scaleEffect(snapshotScale)
-                .frame(width: 1240 * snapshotScale, height: 860 * snapshotScale)
+                .frame(width: 1240 * snapshotScale, height: snapshotHeight * snapshotScale)
                 .background(Color(NSColor.windowBackgroundColor))
         } else {
             ZStack {
@@ -550,7 +686,9 @@ struct ContentView: View {
                 ScrollView { layout }
             }
             .frame(minWidth: 1100, minHeight: 560)
+            .sheet(isPresented: $s.editingTracks) { TracksSheet(s: s) }
         }
     }
 }
-let snapshotScale: CGFloat = 0.82
+let snapshotScale: CGFloat = 0.8
+let snapshotHeight: CGFloat = 900

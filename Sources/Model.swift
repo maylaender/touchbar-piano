@@ -105,10 +105,21 @@ final class AppState: ObservableObject {
     @Published var selectedSongID: UUID?
     @Published var sheetMode = false
     @Published var waitForMe = true
-    @Published var speed: Double = 1
+    @Published var speed: Double = 1 {
+        didSet { if playing != nil && !paused { playStart = Date().addingTimeInterval(-Date().timeIntervalSince(playStart) * oldValue / speed) } }
+    }
     @Published var followOctave: Bool { didSet { defaults.set(followOctave, forKey: "followOctave") } }
     @Published var bothHands: Bool { didSet { defaults.set(bothHands, forKey: "bothHands") } }
+    @Published var learnLeft: Bool { didSet { defaults.set(learnLeft, forKey: "learnLeft") } }
+    @Published var countIn: Bool { didSet { defaults.set(countIn, forKey: "countIn") } }
+    @Published var accVolume: Double { didSet { defaults.set(accVolume, forKey: "accVolume") } }
+    @Published var accLit: Set<Int> = []         // sounding accompaniment notes (purple)
     @Published var playing: PlayMode?
+    @Published var paused = false
+    @Published var countdown: Int?               // count-in beat shown in the UI
+    @Published var loopA: Double?
+    @Published var loopB: Double?
+    @Published var editingTracks = false
     @Published var sheetTime: Double = 0
     enum PlayMode { case demo, practice }
 
@@ -123,7 +134,10 @@ final class AppState: ObservableObject {
         bpm = defaults.object(forKey: "bpm") as? Double ?? 100
         followOctave = defaults.object(forKey: "followOctave") as? Bool ?? true
         bothHands = defaults.object(forKey: "bothHands") as? Bool ?? true
-        if snapshotMode { octave = 4; instrumentID = 0; bpm = 100; followOctave = true; bothHands = true }
+        learnLeft = defaults.object(forKey: "learnLeft") as? Bool ?? false
+        countIn = defaults.object(forKey: "countIn") as? Bool ?? true
+        accVolume = defaults.object(forKey: "accVolume") as? Double ?? 0.75
+        if snapshotMode { octave = 4; instrumentID = 0; bpm = 100; followOctave = true; bothHands = true; learnLeft = false; countIn = true; accVolume = 0.75 }
         synth.setInstrument(instrument)
         library = builtInSongs + loadUserSongs()
         selectedSongID = library.first?.id
@@ -131,12 +145,13 @@ final class AppState: ObservableObject {
 
     // MARK: Notes (touch bar, mouse, playback)
     private var held: [Int: Int] = [:]
-    func noteOn(_ n: Int, drum: Bool? = nil, user: Bool = true) {
+    func noteOn(_ n: Int, drum: Bool? = nil, user: Bool = true, acc: Bool = false) {
         guard (0...127).contains(n) else { return }
         let d = drum ?? instrument.isDrums
-        synth.on(UInt8(n), drum: d)
+        synth.on(UInt8(n), drum: d, velocity: acc ? UInt8(min(127, 100 * accVolume * 1.27)) : 100)
         held[n, default: 0] += 1
         pressed.insert(n)
+        if acc { accLit.insert(n) } else { accLit.remove(n) }
         if user { record(n, on: true, drum: d); checkLearn(n) }
     }
     func noteOff(_ n: Int, drum: Bool? = nil, user: Bool = true) {
@@ -144,12 +159,12 @@ final class AppState: ObservableObject {
         let d = drum ?? instrument.isDrums
         let c = (held[n] ?? 1) - 1
         held[n] = c > 0 ? c : nil
-        if c <= 0 { synth.off(UInt8(n), drum: d); pressed.remove(n) }
+        if c <= 0 { synth.off(UInt8(n), drum: d); pressed.remove(n); accLit.remove(n) }
         if user { record(n, on: false, drum: d) }
     }
     private func allNotesOff() {
         for n in held.keys { synth.off(UInt8(n), drum: false); synth.off(UInt8(n), drum: true) }
-        held = [:]; pressed = []
+        held = [:]; pressed = []; accLit = []
     }
 
     // MARK: Recorder (pedal extends note lengths)
@@ -193,59 +208,133 @@ final class AppState: ObservableObject {
         saveUserSongs()
     }
 
-    // MARK: Songs: demo playback and practice (sheet mode)
+    // MARK: Songs: playback, practice (sheet mode), pause, seek, loop, count-in
+    typealias Event = (t: Double, n: Int, on: Bool, drum: Bool, acc: Bool)
     private var timer: Timer?
     private var playStart = Date()
-    private var events: [(t: Double, n: Int, on: Bool, drum: Bool)] = []
+    private var events: [Event] = []
     private var eventIndex = 0
     private var groups: [[SongNote]] = []
     private var groupIndex = 0
     private var groupHit: Set<Int> = []
+    private var startFrom = 0.0          // song time where playback (after the count-in) begins
+    private var pausedAt = 0.0
+    private var countRun = 0
 
     func select(_ song: Song) {
         stopPlayback()
-        selectedSongID = song.id; sheetTime = 0; fitOctave(song)
+        selectedSongID = song.id; sheetTime = 0; loopA = nil; loopB = nil
+        fitOctave(song)
     }
-    func togglePlay() { playing != nil ? stopPlayback() : (sheetMode ? practice() : playDemo()) }
+    /// Space: start, pause, resume.
+    func togglePlay() {
+        if playing != nil { paused ? resume() : pause() }
+        else { sheetMode ? practice() : playDemo() }
+    }
 
-    /// Note events for playback; `onlyAcc` = accompaniment only (play-along practice).
-    private func makeEvents(_ s: Song, onlyAcc: Bool = false) -> [(t: Double, n: Int, on: Bool, drum: Bool)] {
-        s.notes.filter { onlyAcc ? $0.acc == true : (bothHands || $0.acc != true) }
-            .flatMap { n -> [(t: Double, n: Int, on: Bool, drum: Bool)] in
-                [(n.start, Int(n.midi), true, n.drum), (n.start + n.dur, Int(n.midi), false, n.drum)]
-            }
+    /// Notes the user is learning (right hand = melody, or left hand = accompaniment).
+    private func isTarget(_ n: SongNote) -> Bool { learnLeft ? (n.isAccompaniment && !n.drum) : n.isMelody }
+    private func makeEvents(_ s: Song, where keep: (SongNote) -> Bool) -> [Event] {
+        s.notes.filter { $0.muted != true && keep($0) }
+            .flatMap { n -> [Event] in [(n.start, Int(n.midi), true, n.drum, n.acc == true), (n.start + n.dur, Int(n.midi), false, n.drum, n.acc == true)] }
             .sorted { $0.t != $1.t ? $0.t < $1.t : (!$0.on && $1.on) }
+    }
+    /// Where to start: loop start, the position set with the progress bar, or the beginning.
+    private func startPosition(_ s: Song) -> Double {
+        if let a = loopA, loopB != nil { return a }
+        return sheetTime > 0.05 && sheetTime < s.length - 0.5 ? sheetTime : 0
     }
     func playDemo() {
         guard let s = selectedSong else { return }
+        let from = startPosition(s)
         stopPlayback(); if isRecording { stopRecording() }
-        fitOctave(s)
-        events = makeEvents(s)
-        eventIndex = 0; sheetTime = 0; playStart = Date()
-        playing = .demo
-        startTimer()
+        events = makeEvents(s) { self.bothHands || !$0.isAccompaniment }
+        begin(.demo, at: from)
     }
     func practice() {
         guard let s = selectedSong else { return }
+        let from = startPosition(s)
         stopPlayback(); if isRecording { stopRecording() }
-        fitOctave(s); sheetMode = true
-        groups = grouped(s); groupIndex = 0; groupHit = []
-        events = !waitForMe && bothHands ? makeEvents(s, onlyAcc: true) : []   // left hand plays along
-        sheetTime = max(0, (groups.first?.first?.start ?? 0) - (waitForMe ? 0 : 2))
-        events.removeAll { $0.t < sheetTime }
-        eventIndex = 0
-        playStart = Date().addingTimeInterval(-sheetTime / speed)
-        playing = .practice
-        if waitForMe { followGroup() }
+        sheetMode = true
+        groups = grouped(s)
+        // the other hand plays along (only when not waiting)
+        events = !waitForMe && bothHands ? makeEvents(s) { !self.isTarget($0) } : []
+        begin(.practice, at: from)
+    }
+    private func begin(_ mode: PlayMode, at from: Double) {
+        playing = mode; paused = false
+        startFrom = from; sheetTime = from
+        eventIndex = events.firstIndex { $0.t >= from } ?? events.count
+        groupIndex = groups.firstIndex { $0[0].start >= from - 0.01 } ?? groups.count; groupHit = []
+        if mode == .practice && waitForMe { followGroup() } else { follow(at: from) }
+        let lead = countIn && !(mode == .practice && waitForMe) ? 4 * 60 / bpm : 0
+        playStart = Date().addingTimeInterval(lead - from / speed)
+        if lead > 0 { runCountIn() }
         updateHints(); startTimer()
     }
+    private func runCountIn() {
+        countRun += 1
+        let run = countRun, step = 60 / bpm
+        for i in 0..<4 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + step * Double(i)) { [weak self] in
+                guard let s = self, s.countRun == run, s.playing != nil else { return }
+                s.countdown = 4 - i
+                s.synth.tick(i == 0)
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + step * 4) { [weak self] in
+            if self?.countRun == run { self?.countdown = nil }
+        }
+    }
+    func pause() {
+        guard playing != nil, !paused else { return }
+        pausedAt = currentTime()
+        paused = true; countRun += 1; countdown = nil
+        silencePlayback()
+    }
+    func resume() {
+        guard playing != nil, paused else { return }
+        paused = false
+        playStart = Date().addingTimeInterval(-pausedAt / speed)
+    }
     func stopPlayback() {
-        let hadSound = playing == .demo || (playing == .practice && !events.isEmpty)
-        playing = nil; hints = []; events = []
-        if hadSound { allNotesOff() }
+        let hadSound = playing != nil && !events.isEmpty
+        playing = nil; paused = false; hints = []; events = []
+        countRun += 1; countdown = nil
+        if hadSound { silencePlayback() }
+    }
+    private func silencePlayback() { allNotesOff() }
+    private func currentTime() -> Double {
+        paused ? pausedAt : max(startFrom, Date().timeIntervalSince(playStart) * speed)
     }
 
-    // MARK: Octave (fit at start, optionally follow the melody)
+    /// Jump to a position (seconds). Without playback it sets where the next play starts.
+    func seek(to target: Double) {
+        guard let s = selectedSong else { return }
+        let t = min(max(0, target), s.length)
+        sheetTime = t
+        guard let mode = playing else { follow(at: t); return }
+        countRun += 1; countdown = nil
+        silencePlayback()
+        startFrom = 0
+        eventIndex = events.firstIndex { $0.t >= t } ?? events.count
+        if paused { pausedAt = t } else { playStart = Date().addingTimeInterval(-t / speed) }
+        if mode == .practice && waitForMe {
+            groupIndex = groups.firstIndex { $0[0].start >= t - 0.01 } ?? groups.count; groupHit = []
+            followGroup()
+        } else { follow(at: t) }
+        updateHints()
+    }
+    func skip(_ seconds: Double) { seek(to: sheetTime + seconds) }
+
+    /// L: set loop start, then loop end, then clear.
+    func toggleLoop() {
+        if loopA == nil { loopA = sheetTime }
+        else if loopB == nil { if let a = loopA, sheetTime > a + 0.3 { loopB = sheetTime } else { loopA = sheetTime } }
+        else { loopA = nil; loopB = nil }
+    }
+
+    // MARK: Octave (fit at start, optionally follow the notes being learned)
     /// Octave whose two-octave window shows lo...hi (keeps the low end if the span is wider).
     private func octaveFitting(_ lo: Int, _ hi: Int) -> Int {
         var o = lo / 12 - 1
@@ -254,14 +343,14 @@ final class AppState: ObservableObject {
     }
     private func inView(_ n: Int) -> Bool { n >= base && n <= base + 24 }
     func fitOctave(_ s: Song) {
-        let first = s.notes.filter(\.isMelody).prefix(24).map { Int($0.midi) }
+        let first = s.notes.filter(isTarget).prefix(24).map { Int($0.midi) }
         guard let lo = first.min(), let hi = first.max() else { return }
         octave = octaveFitting(lo, hi)
     }
-    /// Follow the melody: shift the octave when upcoming melody notes leave the visible range.
+    /// Shift the octave when the upcoming notes leave the visible range.
     private func follow(at t: Double) {
         guard followOctave, let s = selectedSong else { return }
-        let soon = s.notes.filter { $0.isMelody && $0.start >= t - 0.05 && $0.start <= t + 1.2 }.map { Int($0.midi) }
+        let soon = s.notes.filter { isTarget($0) && $0.start >= t - 0.05 && $0.start <= t + 1.2 }.map { Int($0.midi) }
         guard let lo = soon.min(), let hi = soon.max(), !soon.allSatisfy(inView) else { return }
         let o = octaveFitting(lo, hi)
         if o != octave { octave = o }
@@ -273,18 +362,21 @@ final class AppState: ObservableObject {
     }
     private func grouped(_ s: Song) -> [[SongNote]] {
         var out: [[SongNote]] = []
-        for n in s.notes where n.isMelody && (followOctave || inView(Int(n.midi))) {
+        for n in s.notes.filter(isTarget).sorted(by: { $0.start < $1.start }) where followOctave || inView(Int(n.midi)) {
             if let first = out.last?.first, abs(first.start - n.start) < 0.03 { out[out.count - 1].append(n) } else { out.append([n]) }
         }
         return out
     }
     private func checkLearn(_ n: Int) {
-        guard playing == .practice, waitForMe, groupIndex < groups.count else { return }
+        guard playing == .practice, waitForMe, !paused, groupIndex < groups.count else { return }
         let need = Set(groups[groupIndex].map { Int($0.midi) })
         guard need.contains(n) else { return }
         groupHit.insert(n)
         if groupHit.isSuperset(of: need) {
             groupIndex += 1; groupHit = []
+            if let a = loopA, let b = loopB, groupIndex < groups.count, groups[groupIndex][0].start >= b {
+                groupIndex = groups.firstIndex { $0[0].start >= a - 0.01 } ?? groupIndex
+            }
             followGroup()
             if groupIndex >= groups.count { DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in self?.stopPlayback() } }
         }
@@ -303,8 +395,23 @@ final class AppState: ObservableObject {
     func preview(_ s: Song, at t: Double) {
         selectedSongID = s.id; sheetTime = t
         follow(at: t)
-        pressed = Set(s.notes.filter { (bothHands || $0.isMelody) && $0.start <= t && $0.start + $0.dur > t }.map { Int($0.midi) })
+        let now = s.notes.filter { $0.muted != true && (bothHands || $0.isMelody) && $0.start <= t && $0.start + $0.dur > t }
+        pressed = Set(now.map { Int($0.midi) })
+        accLit = Set(now.filter(\.isAccompaniment).map { Int($0.midi) })
     }
+
+    // MARK: Song tracks (melody / accompaniment / muted)
+    private func updateSong(_ change: (inout Song) -> Void) {
+        guard let i = library.firstIndex(where: { $0.id == selectedSongID }) else { return }
+        stopPlayback()
+        change(&library[i])
+        library[i] = Parts.apply(library[i])
+        if library[i].source != .builtIn { saveUserSongs() }
+        fitOctave(library[i])
+    }
+    func setRole(_ role: PartRole, part: Int) { updateSong { s in if s.parts?.indices.contains(part) == true { s.parts![part].role = role } } }
+    func setTopVoice(_ on: Bool) { updateSong { $0.topVoice = on } }
+    func autoRoles() { updateSong { $0 = Parts.auto($0) } }
 
     private func startTimer() {
         guard timer == nil else { return }
@@ -314,35 +421,30 @@ final class AppState: ObservableObject {
     }
     private func tick() {
         if isRecording { recordTime = recNow() }
-        let t = Date().timeIntervalSince(playStart) * speed
-        switch playing {
-        case .demo?:
-            while eventIndex < events.count && events[eventIndex].t <= t {
-                let e = events[eventIndex]
-                if e.on { noteOn(e.n, drum: e.drum, user: false) } else { noteOff(e.n, drum: e.drum, user: false) }
-                eventIndex += 1
-            }
-            sheetTime = t
-            follow(at: t)
-            if eventIndex >= events.count { stopPlayback() }
-        case .practice?:
-            if waitForMe {
-                let target = groupIndex < groups.count ? groups[groupIndex][0].start : sheetTime
-                sheetTime += (target - sheetTime) * 0.18
-            } else {
-                while eventIndex < events.count && events[eventIndex].t <= t {
-                    let e = events[eventIndex]
-                    if e.on { noteOn(e.n, drum: e.drum, user: false) } else { noteOff(e.n, drum: e.drum, user: false) }
-                    eventIndex += 1
-                }
-                sheetTime = t
-                follow(at: t)
-                updateHints()
-                if t > (selectedSong?.length ?? 0) + 1 { stopPlayback() }
-            }
-        case nil:
+        guard let mode = playing else {
             if !isRecording { timer?.invalidate(); timer = nil }
+            return
         }
+        if paused { return }
+        let raw = Date().timeIntervalSince(playStart) * speed
+        if raw < startFrom { sheetTime = startFrom; return }          // count-in
+        let t = raw
+        if let a = loopA, let b = loopB, t >= b, !(mode == .practice && waitForMe) { seek(to: a); return }
+        if mode == .practice && waitForMe {
+            let target = groupIndex < groups.count ? groups[groupIndex][0].start : sheetTime
+            sheetTime += (target - sheetTime) * 0.18
+            return
+        }
+        while eventIndex < events.count && events[eventIndex].t <= t {
+            let e = events[eventIndex]
+            if e.on { noteOn(e.n, drum: e.drum, user: false, acc: e.acc) } else { noteOff(e.n, drum: e.drum, user: false) }
+            eventIndex += 1
+        }
+        sheetTime = t
+        follow(at: t)
+        updateHints()
+        let end = selectedSong?.length ?? 0
+        if mode == .demo ? eventIndex >= events.count : t > end + 1 { stopPlayback(); sheetTime = 0 }
     }
 
     // MARK: Metronome
@@ -397,6 +499,7 @@ final class AppState: ObservableObject {
             if let s = song { library.append(s); select(s) } else { NSSound.beep() }
         }
         saveUserSongs()
+        if (selectedSong?.parts?.count ?? 0) > 1 { editingTracks = true }   // let the user check the track split
     }
     func exportMIDI() {
         guard let s = selectedSong else { return }

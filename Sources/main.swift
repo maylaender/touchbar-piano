@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var monitor: Any?
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        let size = state.snapshotMode ? NSSize(width: 1240 * snapshotScale, height: 860 * snapshotScale) : NSSize(width: 1240, height: 820)
+        let size = state.snapshotMode ? NSSize(width: 1240 * snapshotScale, height: snapshotHeight * snapshotScale) : NSSize(width: 1240, height: 820)
         window = PianoWindow(contentRect: NSRect(origin: .zero, size: size),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if down != state.pedal { state.pedal = down }
             return false
         }
-        if e.modifierFlags.contains(.command) { return false }
+        if e.modifierFlags.contains(.command) || NSApp.keyWindow !== window { return false }   // not while a sheet is open
         let first = !e.isARepeat
         switch e.keyCode {
         case 123: state.octave = max(1, state.octave - 1)        // ←
@@ -54,6 +54,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             else if c == "m" { if first { state.metronome.toggle() } }
             else if c == "r" { if first { state.toggleRecording() } }
             else if c == "s" { if first { state.sheetMode.toggle() } }
+            else if c == "," { state.skip(-5) }
+            else if c == "." { state.skip(5) }
+            else if c == "l" { if first { state.toggleLoop() } }
             else { return false }
         }
         return true
@@ -90,10 +93,11 @@ enum Snapshot {
             ("main", { state.pedal = true; state.pressed = [60, 64, 67] }),
             ("sheet", {
                 state.pedal = false; state.pressed = []
-                state.select(song("Elise")); state.waitForMe = true; state.practice()
+                state.select(song("Elise")); state.waitForMe = true
+                state.loopA = 4; state.loopB = 18; state.practice()
                 for _ in 0..<5 { for n in state.hints { state.noteOn(n); state.noteOff(n) } }
             }),
-            ("drums", { state.stopPlayback(); state.sheetMode = false; state.instrumentID = drums; state.pressed = [36, 42] }),
+            ("drums", { state.loopA = nil; state.loopB = nil; state.stopPlayback(); state.sheetMode = false; state.instrumentID = drums; state.pressed = [36, 42] }),
             ("record", { state.instrumentID = 0; state.pressed = [62, 65, 69]; state.metronome = true; state.startRecording() }),
         ]
         // animation frames: Ode to Joy in sheet mode
