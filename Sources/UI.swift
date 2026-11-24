@@ -556,6 +556,7 @@ struct Transport: View {
         .font(.system(size: 11.5, weight: .semibold, design: .rounded))
         .foregroundColor(.white)
         .padding(.horizontal, 4)
+        .frame(height: 32)
     }
 }
 struct TransportButton: View {

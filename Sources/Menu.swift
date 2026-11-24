@@ -130,7 +130,6 @@ final class MenuActions: NSObject, NSMenuItemValidation {
         let m = NSMenu()
         add(m, L("Minimize", "Im Dock ablegen"), #selector(NSWindow.performMiniaturize(_:)), "m")
         add(m, L("Zoom", "Zoomen"), #selector(NSWindow.performZoom(_:)))
-        add(m, L("Enter Full Screen", "Vollbildmodus"), #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
         m.addItem(.separator())
         add(m, L("Bring All to Front", "Alle nach vorne bringen"), #selector(NSApplication.arrangeInFront(_:)), target: NSApp)
         return m
@@ -216,20 +215,9 @@ final class MenuActions: NSObject, NSMenuItemValidation {
 
     /// Standard About panel with credits.
     func showAbout() {
-        let text = L("""
-            Turns the MacBook Pro Touch Bar into a piano.
-            Open source – MIT licence © touchbar-piano contributors.
-
-            Built-in songs from the Mutopia Project and IMSLP (public domain; Sonata facile CC BY-SA 3.0).
-            Sounds: the General MIDI sound bank built into macOS.
-            """, """
-            Verwandelt die Touch Bar des MacBook Pro in ein Klavier.
-            Open Source – MIT-Lizenz © touchbar-piano contributors.
-
-            Eingebaute Lieder vom Mutopia Project und von IMSLP (gemeinfrei; Sonata facile CC BY-SA 3.0).
-            Klänge: die in macOS eingebaute General-MIDI-Soundbank.
-            """)
-        let credits = NSMutableAttributedString(string: text + "\n\n", attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.labelColor])
+        let text = L("Turns the MacBook Pro Touch Bar into a piano.\nSongs: Mutopia Project & IMSLP · Sounds: macOS",
+                     "Verwandelt die Touch Bar des MacBook Pro in ein Klavier.\nLieder: Mutopia Project & IMSLP · Klänge: macOS")
+        let credits = NSMutableAttributedString(string: text + "\n", attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.labelColor])
         credits.append(NSAttributedString(string: "github.com/maylaender/touchbar-piano", attributes: [.font: NSFont.systemFont(ofSize: 11), .link: repoURL]))
         let center = NSMutableParagraphStyle(); center.alignment = .center
         credits.addAttribute(.paragraphStyle, value: center, range: NSRange(location: 0, length: credits.length))

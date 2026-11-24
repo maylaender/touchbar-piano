@@ -41,8 +41,11 @@ def strip(name):
     c.alpha_composite(tb, (10, 10))
     return c
 
-for n in ["main", "sheet", "drums", "record"]:
+for n in ["main", "sheet", "drums", "record", "dark"]:
     save(window(n), f"window-{n}.png")
+for n in ["settings", "about"]:                       # small windows: keep as captured
+    if os.path.exists(f"{src}/{n}.png"):
+        save(Image.open(f"{src}/{n}.png"), f"{n}.png")
 for n in ["main", "drums"]:
     save(strip(n), f"touchbar-{n}.png")
 

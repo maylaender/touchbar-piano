@@ -23,7 +23,6 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VER</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
-  <key>CFBundleVersion</key><string>$VER</string>
   <key>NSHumanReadableCopyright</key><string>MIT licence © touchbar-piano contributors</string>
   <key>CFBundleDocumentTypes</key><array>
     <dict><key>CFBundleTypeName</key><string>MIDI file</string><key>CFBundleTypeRole</key><string>Viewer</string>
