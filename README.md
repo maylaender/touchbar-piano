@@ -33,7 +33,7 @@
 | 🦶 **Sustain pedal** | Hold <kbd>Shift</kbd> – just like the pedal on a real piano. |
 | ⏱ **Metronome** | 40–240 BPM with an accented first beat. |
 | ⏺ **Recorder** | Record, play back and watch the keys light up. Recordings are kept between launches. |
-| 🎼 **Classics built in** | Mozart, Beethoven, Bach and Brahms – press play and watch. |
+| 🎼 **Classics built in** | Complete pieces by Mozart, Beethoven, Bach and Brahms with both hands – press play and watch. |
 | 📖 **Sheet mode** | Falling notes show what to play next. *Learn mode* waits until you hit the right key. |
 | 🎛 **MIDI** | Import `.mid` files, export your recordings to GarageBand & co. |
 | 🌍 **English & German** | Follows your macOS language. |
@@ -84,14 +84,18 @@ Every shortcut is also shown – and clickable – in the app window.
 
 ## 🎼 Built-in songs
 
+Complete pieces with **both hands**, taken note for note from verified public-domain editions – see [`Songs/SOURCES.md`](Songs/SOURCES.md).
+
 | Composer | Songs |
 |---|---|
-| Mozart | Eine kleine Nachtmusik · Rondo alla Turca · Sonata facile K. 545 · Ah vous dirai-je, Maman |
+| Mozart | Eine kleine Nachtmusik (1st mvt.) · Rondo alla Turca · Sonata facile K. 545 (1st mvt.) · Ah vous dirai-je, Maman (Theme & Var. 1) |
 | Beethoven | Für Elise · Ode to Joy |
 | Bach / Petzold | Minuet in G |
-| Brahms | Lullaby (Wiegenlied) |
+| Brahms | Lullaby (Wiegenlied) Op. 49 No. 4 |
 
-All public domain, simplified to a right-hand melody that fits two octaves.
+- **Both hands** (toggle): play back melody + accompaniment, or the melody alone. In play-along practice the left hand plays with you.
+- **Follow octave** (toggle): the Touch Bar's two octaves move along with the melody, so whole pieces fit.
+- Sheet and learn mode always use the melody (right hand) – the accompaniment shows as grey notes.
 
 ## ✍️ Write your own songs
 
@@ -112,7 +116,7 @@ C4 D4 E4 C4 | C4 D4 E4 C4 | E4 F4 G4:2 | E4 F4 G4:2
 | `R`, `R:2` | Rest |
 | `\|` | Bar line (ignored, just for reading) |
 
-Standard **MIDI files** (`.mid`) work too. Pull requests with new songs are welcome!
+Standard **MIDI files** (`.mid`) work too – the first track with notes becomes the melody, all other tracks the accompaniment. Pull requests with new songs are welcome!
 
 ## 💻 Compatibility
 
@@ -157,7 +161,7 @@ In `~/Library/Application Support/Touch Bar Piano/songs.json`. Delete a song by 
 | Sound | `AVAudioEngine` + 3× `AVAudioUnitSampler` with macOS' `gs_instruments.dls` |
 | Pedal | MIDI Control Change 64 |
 | Window | SwiftUI in an `NSWindow` |
-| Songs | Own text format + minimal MIDI reader/writer |
+| Songs | Bundled two-track MIDI files (melody + accompaniment) built by `tools/make_songs.py`; own text format + minimal MIDI reader/writer |
 | CI | GitHub Actions builds, self-tests (songs + MIDI round-trip), renders screenshots and releases |
 
 ```
@@ -181,4 +185,4 @@ open Piano.app
 
 ## 📄 License
 
-[MIT](LICENSE) © touchbar-piano contributors · See the [CHANGELOG](CHANGELOG.md) for all versions.
+[MIT](LICENSE) © touchbar-piano contributors · Song files: see [`Songs/SOURCES.md`](Songs/SOURCES.md) (public domain, *Sonata facile* CC BY-SA 3.0) · See the [CHANGELOG](CHANGELOG.md) for all versions.

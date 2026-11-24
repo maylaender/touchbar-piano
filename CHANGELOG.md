@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.1
+- All 8 built-in songs are now complete pieces with both hands, taken from verified public-domain editions
+  (Mutopia Project, Breitkopf & Härtel 1878) instead of being written from memory – fixes wrong notes in
+  Eine kleine Nachtmusik, Rondo alla Turca, Sonata facile, Lullaby and Ah vous dirai-je, Maman
+- New toggles: **Follow octave** (Touch Bar moves with the melody) and **Both hands** (melody + accompaniment)
+- Play-along practice plays the left hand with you; accompaniment shown as grey falling notes
+- MIDI import/export keeps melody and accompaniment apart (two tracks)
+
 ## v3
 - Full-width, system-wide Touch Bar (private API, from v2.1-beta) with Esc hidden
 - New SwiftUI window in macOS style: live keyboard, cards, switches, sliders – every shortcut also clickable
