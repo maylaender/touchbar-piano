@@ -21,9 +21,10 @@ jobs:
           for i in $(seq 1 240); do kill -0 $PID 2>/dev/null || break; sleep 1; done
           kill $PID 2>/dev/null || true
           ls snapshot | wc -l || true
-          # on a crash: print the macOS crash report (crashed thread)
-          R=$(ls -t ~/Library/Logs/DiagnosticReports/Piano* 2>/dev/null | head -1)
-          if [ -n "$R" ]; then python3 -c "import json,sys; t=open(sys.argv[1]).read().split('\n',1)[1]; d=json.loads(t); th=[x for x in d['threads'] if x.get('triggered')][0]; ims=d['usedImages']; print(d.get('exception')); [print(f.get('symbol','?'), ims[f['imageIndex']].get('name','?')) for f in th['frames'][:25]]" "$R" || head -c 4000 "$R"; fi
+          # no screenshots = crash: run again under the debugger and print the backtrace
+          if [ ! -d snapshot ]; then
+            lldb -b -o "process launch --environment PIANO_SNAPSHOT=$PWD/snapdbg" -o "bt 25" ./Piano.app/Contents/MacOS/Piano 2>&1 | tail -45 || true
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
