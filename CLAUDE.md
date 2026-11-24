@@ -4,9 +4,10 @@ macOS app that turns the MacBook Pro Touch Bar into a piano (Swift, AppKit + Swi
 Public repo: github.com/maylaender/touchbar-piano · current release: see `VERSION`.
 
 ## Current status (update this section when it changes)
-- Stable: **v3.3** on `main` – tracks dialog, transport (pause, ±5 s, progress bar, A–B loop), count-in,
-  left-hand practice, accompaniment volume, hand colours; includes the visible-area Touch Bar fix from v3.2-beta.
-- Not yet confirmed on real hardware: the Touch Bar fix (rightmost key) and all audio/touch behaviour.
+- Stable: **v3.4** on `main` – menu bar, settings window (Touch Bar mode, appearance, start instrument), About,
+  drag & drop / Open with, Dock menu, window autosave, dark mode.
+- Not yet confirmed on real hardware: the Touch Bar visible-area fix (rightmost key), audio and touch behaviour.
+- Owner's wish: no menu-bar status icon – quitting the app must remove the piano from the Touch Bar.
 
 ## Working with the owner
 - Answer in **German** (Swiss: no "ß", keyboard has no direct `[ ]`). Code, commits and README in English.
@@ -42,7 +43,9 @@ The repo is public. **No personal data, credentials or keys – ever, in any com
 ## Code map (`Sources/`)
 | File | Content |
 |---|---|
-| `main.swift` | App start, window, keyboard shortcuts (local event monitor), CI snapshot sequence |
+| `main.swift` | App start, window, keyboard shortcuts (local event monitor), Touch Bar mode switch, open files, CI snapshot sequence |
+| `Menu.swift` | `MenuActions`: menu bar (all functions + shortcuts, checkmarks via `validateMenuItem`), Dock menu, About panel; `describe()` prints the menus to the CI log |
+| `Settings.swift` | Settings window (SwiftUI in an `NSWindow`) |
 | `Model.swift` | `AppState` (ObservableObject): octave, instrument, pedal, metronome, recorder, playback, learn mode, `followOctave`, `bothHands`, library (user songs in `~/Library/Application Support/Touch Bar Piano/songs.json`); localisation `L(en, de)`; 32 instruments; `KeyLayout` geometry |
 | `Audio.swift` | `AVAudioEngine` + 3 samplers (keys, drums, metronome) from macOS `gs_instruments.dls` |
 | `TouchBar.swift` | `PianoView` (multitouch), `BarProvider`, `SystemModal` = private API for full-width system-wide bar, Esc hidden |
@@ -73,6 +76,10 @@ IMSLP shows a bot check to automated downloads – do not bypass it; ask the own
 - SwiftUI is not captured by `cacheDisplay` → CI window screenshots use `screencapture -l<windowNumber>`;
   the CI screen is 1024×768, so snapshot mode renders the layout scaled (`snapshotScale`).
 - README images in `docs/` come from `tools/readme_assets.py` (see Tools). Always label illustrations as such.
+- `AppState` is created before `NSApplication` – code reachable from its init/`didSet` must not touch `NSApp`
+  unguarded (a `@Published` property with `didSet` *does* fire when set in `init` after all properties are set).
+- If the CI snapshot run produces no images, the workflow re-runs it under `lldb` and prints the backtrace.
+- New menu items: add them in `Menu.swift` and, if they toggle something, a checkmark case in `validateMenuItem`.
 - The keyboard on the Touch Bar may be narrower than requested in full-width mode – lay out and hit-test keys in
   `PianoView.area` (visible rect), never in `bounds`.
 

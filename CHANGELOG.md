@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.4
+- **Menu bar** with every function and its shortcut (App, File, Edit, Playback, Piano, Instrument, Window, Help) – ⌘Q, ⌘W, ⌘H, ⌘M, ⌘O, ⇧⌘E, ⌘T, ⌘., ⌘, now work
+- **Settings window** (⌘,): Touch Bar mode (full width / standard with Esc), appearance (system/light/dark), instrument at launch, practice defaults
+- **About window** with version, credits and link
+- **Drag & drop** and **Open with**: MIDI and text songs onto the window, the Dock icon or from Finder
+- **Dock menu**: play/pause, stop, record, sheet mode, metronome
+- Window size and position are remembered; dark mode checked
+
 ## v3.3
 - **Tracks dialog** for MIDI files: melody / accompaniment / muted per track (or per channel for single-track files), automatic suggestion, "top voice only" option
 - **Transport**: pause/resume (Space), ±5 s (`,` `.`), progress bar to jump anywhere, **A–B loop** (`L`)

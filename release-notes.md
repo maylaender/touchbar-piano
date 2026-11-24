@@ -1,10 +1,11 @@
-**Touch Bar Piano v3.3** – practise smarter. Universal (Intel + Apple Silicon), macOS 11+.
+**Touch Bar Piano v3.4** – a proper Mac app. Universal (Intel + Apple Silicon), macOS 11+.
 
-- 🎛 **Tracks dialog** for MIDI files: choose melody, accompaniment or muted for every track – with an automatic suggestion
-- ⏯ **Pause, jump ±5 s, progress bar** and an **A–B loop** for tricky passages (Space · `,` `.` · `L`)
-- 🙌 **Learn the left hand**, **count-in**, **accompaniment volume**
-- 🎨 Hands in colour: melody blue, accompaniment purple – on the Touch Bar and in the window
-- 🎹 Touch Bar: the rightmost key is no longer cut off in full-width mode
+- 🍏 **Menu bar** with every function and its shortcut – **⌘Q**, ⌘W, ⌘H, ⌘M, ⌘O and more now work
+- ⚙️ **Settings** (⌘,): Touch Bar mode (full width or standard with Esc), light/dark appearance, instrument at launch, practice defaults
+- ℹ️ **About window** with version and credits
+- 📂 **Drag & drop** MIDI or text songs onto the window or Dock icon, or *Open with* from Finder
+- 🖱 **Dock menu**: play/pause, stop, record
+- 🌗 Window size and position remembered, dark mode polished
 
 **Install:** download `Piano.app.zip`, unzip, then in Terminal:
 

@@ -38,6 +38,9 @@
 | 🎛 **MIDI** | Import `.mid` files and choose per track: melody, accompaniment or muted. Export your recordings to GarageBand & co. |
 | ⏯ **Transport** | Pause, jump ±5 s, drag the progress bar, repeat a passage with an **A–B loop**. |
 | 🙌 **Practice tools** | Learn the left hand, count-in, accompaniment volume, hands in different colours (melody blue, accompaniment purple). |
+| 🍏 **A real Mac app** | Menu bar with every function and its shortcut, ⌘Q / ⌘W / ⌘H, Dock menu, About window, settings (⌘,), remembers window size and position. |
+| 📂 **Drag & drop** | Drop MIDI or text songs onto the window or the Dock icon, or use *Open with* in Finder. |
+| 🌗 **Light & dark** | Follows macOS – or choose in the settings. |
 | 🌍 **English & German** | Follows your macOS language. |
 
 ## 🚀 Quick start
@@ -55,6 +58,10 @@
 | Learn mode – falling notes | Drum mode | Recording |
 |---|---|---|
 | <img src="docs/window-sheet.png" alt="Sheet mode"> | <img src="docs/window-drums.png" alt="Drum mode"> | <img src="docs/window-record.png" alt="Recorder"> |
+
+| Dark mode | Settings | About |
+|---|---|---|
+| <img src="docs/window-dark.png" alt="Dark mode"> | <img src="docs/settings.png" alt="Settings window" width="320"> | <img src="docs/about.png" alt="About window" width="200"> |
 
 <img src="docs/touchbar-main.png" alt="Touch Bar piano with C major chord">
 <img src="docs/touchbar-drums.png" alt="Touch Bar drum pads">
@@ -74,7 +81,8 @@
 | <kbd>L</kbd> | A–B loop: set start, set end, clear |
 | <kbd>S</kbd> | Sheet mode on / off |
 
-Every shortcut is also shown – and clickable – in the app window.
+Every shortcut is also shown – and clickable – in the app window and in the menu bar. Standard Mac shortcuts work too:
+<kbd>⌘O</kbd> import · <kbd>⇧⌘E</kbd> export MIDI · <kbd>⌘T</kbd> tracks · <kbd>⌘.</kbd> stop · <kbd>⌘,</kbd> settings · <kbd>⌘W</kbd> / <kbd>⌘Q</kbd> quit.
 
 ## 🎻 Instruments
 
@@ -139,7 +147,7 @@ The app is open source but not notarized by Apple. Run `xattr -dr com.apple.quar
 
 <details><summary><b>The Touch Bar doesn't show the piano</b></summary>
 
-Quit other Touch Bar tools (BetterTouchTool, Pock, MTMR) and start the app again. If needed, set **System Settings → Keyboard → Touch Bar shows → App Controls**.
+Quit other Touch Bar tools (BetterTouchTool, Pock, MTMR) and start the app again. If needed, set **System Settings → Keyboard → Touch Bar shows → App Controls**. You can also switch **Settings (⌘,) → Touch Bar → Standard** – then the piano uses Apple's normal Touch Bar API (with Esc, only while the window is active).
 </details>
 
 <details><summary><b>I hear no sound</b></summary>
@@ -149,7 +157,7 @@ Check the volume and the output device. The app uses the General MIDI sound bank
 
 <details><summary><b>Does the piano stay on the Touch Bar when I switch apps?</b></summary>
 
-Yes – it uses the same private macOS API as Pock and MTMR. Close the window or press <kbd>⌘Q</kbd> to give the Touch Bar back. Keyboard shortcuts only work while the window is active.
+In full-width mode, yes – it uses the same private macOS API as Pock and MTMR. Closing the window or <kbd>⌘Q</kbd> quits the app and gives the Touch Bar back. Keyboard shortcuts only work while the window is active.
 </details>
 
 <details><summary><b>Where are my recordings stored?</b></summary>
@@ -171,6 +179,8 @@ In `~/Library/Application Support/Touch Bar Piano/songs.json`. Delete a song by 
 ```
 Sources/
 ├── main.swift      App start, keyboard shortcuts, CI snapshots
+├── Menu.swift      Menu bar, Dock menu, About window
+├── Settings.swift  Settings window
 ├── Model.swift     State, instruments, recorder, playback, learn mode
 ├── Audio.swift     Samplers
 ├── TouchBar.swift  Touch Bar view + private API
