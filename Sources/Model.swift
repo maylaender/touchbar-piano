@@ -110,6 +110,14 @@ final class AppState: ObservableObject {
     }
     @Published var followOctave: Bool { didSet { defaults.set(followOctave, forKey: "followOctave") } }
     @Published var bothHands: Bool { didSet { defaults.set(bothHands, forKey: "bothHands") } }
+    // settings
+    @Published var fullWidthBar: Bool { didSet { defaults.set(fullWidthBar, forKey: "fullWidthBar"); onTouchBarModeChange() } }
+    @Published var appearance: Int { didSet { defaults.set(appearance, forKey: "appearance"); applyAppearance() } }
+    @Published var startInstrument: Int { didSet { defaults.set(startInstrument, forKey: "startInstrument") } }
+    var onTouchBarModeChange: () -> Void = {}
+    func applyAppearance() {
+        NSApp.appearance = appearance == 1 ? NSAppearance(named: .aqua) : appearance == 2 ? NSAppearance(named: .darkAqua) : nil
+    }
     @Published var learnLeft: Bool { didSet { defaults.set(learnLeft, forKey: "learnLeft") } }
     @Published var countIn: Bool { didSet { defaults.set(countIn, forKey: "countIn") } }
     @Published var accVolume: Double { didSet { defaults.set(accVolume, forKey: "accVolume") } }
@@ -135,9 +143,13 @@ final class AppState: ObservableObject {
         followOctave = defaults.object(forKey: "followOctave") as? Bool ?? true
         bothHands = defaults.object(forKey: "bothHands") as? Bool ?? true
         learnLeft = defaults.object(forKey: "learnLeft") as? Bool ?? false
+        fullWidthBar = defaults.object(forKey: "fullWidthBar") as? Bool ?? true
+        appearance = defaults.object(forKey: "appearance") as? Int ?? 0
+        startInstrument = defaults.object(forKey: "startInstrument") as? Int ?? -1
         countIn = defaults.object(forKey: "countIn") as? Bool ?? true
         accVolume = defaults.object(forKey: "accVolume") as? Double ?? 0.75
-        if snapshotMode { octave = 4; instrumentID = 0; bpm = 100; followOctave = true; bothHands = true; learnLeft = false; countIn = true; accVolume = 0.75 }
+        if instruments.indices.contains(startInstrument) { instrumentID = startInstrument }
+        if snapshotMode { octave = 4; instrumentID = 0; bpm = 100; followOctave = true; bothHands = true; learnLeft = false; countIn = true; accVolume = 0.75; fullWidthBar = true; appearance = 1 }
         synth.setInstrument(instrument)
         library = builtInSongs + loadUserSongs()
         selectedSongID = library.first?.id
@@ -490,7 +502,11 @@ final class AppState: ObservableObject {
         p.allowedFileTypes = ["mid", "midi", "txt"]
         p.allowsMultipleSelection = true
         guard p.runModal() == .OK else { return }
-        for url in p.urls {
+        importFiles(p.urls)
+    }
+    /// Import MIDI or text songs (open panel, drag & drop, Finder "Open with", Dock icon).
+    func importFiles(_ urls: [URL]) {
+        for url in urls where ["mid", "midi", "txt"].contains(url.pathExtension.lowercased()) {
             guard let d = try? Data(contentsOf: url) else { continue }
             let name = url.deletingPathExtension().lastPathComponent
             let song = url.pathExtension.lowercased() == "txt"

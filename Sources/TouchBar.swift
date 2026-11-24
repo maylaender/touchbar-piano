@@ -152,5 +152,6 @@ enum SystemModal {
             typealias F = @convention(c) (AnyClass, Selector, NSTouchBar) -> Void
             unsafeBitCast(method_getImplementation(m), to: F.self)(cls, sel, b)
         }
+        bar = nil
     }
 }

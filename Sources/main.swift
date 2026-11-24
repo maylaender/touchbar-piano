@@ -22,16 +22,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titleVisibility = .hidden
         window.contentView = NSHostingView(rootView: ContentView(s: state))
         window.center()
+        if !state.snapshotMode { window.setFrameAutosaveName("TouchBarPianoMain") }   // remember size and position
+        state.applyAppearance()
+        menuActions.mainWindow = window
+        menuActions.showSettings = { SettingsWindow.show() }
+        menuActions.installMainMenu()
+        state.onTouchBarModeChange = { [weak self] in self?.applyTouchBarMode() }
         window.makeKeyAndOrderFront(nil)
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] e in
             self?.handle(e) == true ? nil : e
         }
-        if !state.snapshotMode { _ = SystemModal.present() }
+        if !state.snapshotMode && state.fullWidthBar { _ = SystemModal.present() }
         NSApp.activate(ignoringOtherApps: true)
         if let dir = ProcessInfo.processInfo.environment["PIANO_SNAPSHOT"] { Snapshot.run(window: window, dir: dir) }
     }
+    /// Closing the window quits the app – and the piano leaves the Touch Bar.
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { true }
     func applicationWillTerminate(_ n: Notification) { state.stopRecording(); SystemModal.dismiss() }
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? { menuActions.dockMenu() }
+    /// Finder "Open with", files dropped on the Dock icon.
+    func application(_ application: NSApplication, open urls: [URL]) { state.importFiles(urls) }
+
+    /// Settings: full-width (system-wide, private API) or standard Touch Bar.
+    func applyTouchBarMode() {
+        if state.fullWidthBar { if SystemModal.bar == nil { _ = SystemModal.present() } }
+        else { SystemModal.dismiss() }
+        window.touchBar = nil   // rebuild the window's own bar (used in standard mode)
+    }
 
     /// Keyboard shortcuts (same as v2, plus R, Space, S).
     func handle(_ e: NSEvent) -> Bool {
@@ -104,13 +121,25 @@ enum Snapshot {
         steps.append(("prep", { state.stopRecording(); state.metronome = false; state.pressed = []; state.select(song("Ode")); state.sheetMode = true }))
         for i in 0..<36 { steps.append((String(format: "f%02d", i), { state.preview(song("Ode"), at: 0.2 + Double(i) * 0.33) })) }
 
+        steps.append(("dark", {
+            state.appearance = 2; state.sheetMode = false; state.select(song("Elise")); state.pedal = true
+            state.pressed = [64, 68, 71]; state.accLit = [45]
+        }))
+        steps.append(("settings", { state.appearance = 1; state.pedal = false; SettingsWindow.show() }))
+        steps.append(("about", { SettingsWindow.window?.close(); menuActions.showAbout() }))
+        print("MENU\n" + menuActions.describe())
+
         func next() {
             guard !steps.isEmpty else { NSApp.terminate(nil); return }
             let (name, action) = steps.removeFirst()
             action()
             DispatchQueue.main.asyncAfter(deadline: .now() + (name.hasPrefix("f") ? 0.2 : 0.9)) {
                 piano.needsDisplay = true
-                if name != "prep" {
+                if name == "settings", let w = SettingsWindow.window {
+                    capture(w, "\(dir)/settings.png")
+                } else if name == "about", let w = NSApp.windows.first(where: { $0 !== window && $0.isVisible && $0 !== SettingsWindow.window }) {
+                    capture(w, "\(dir)/about.png")
+                } else if name != "prep" {
                     save(piano, "\(dir)/touchbar_\(name).png")
                     capture(window, "\(dir)/window_\(name).png")
                 }

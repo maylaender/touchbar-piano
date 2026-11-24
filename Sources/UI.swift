@@ -650,6 +650,7 @@ struct ShortcutBar: View {
 // MARK: - Window content (3 columns, fits a 13" MacBook)
 struct ContentView: View {
     @ObservedObject var s: AppState
+    @State var dropTarget = false
     var layout: some View {
         VStack(spacing: 14) {
             Header(s: s)
@@ -689,6 +690,26 @@ struct ContentView: View {
             }
             .frame(minWidth: 1100, minHeight: 560)
             .sheet(isPresented: $s.editingTracks) { TracksSheet(s: s) }
+            .onDrop(of: ["public.file-url"], isTargeted: $dropTarget) { providers in
+                for p in providers {
+                    p.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in
+                        guard let d = item as? Data, let url = URL(dataRepresentation: d, relativeTo: nil) else { return }
+                        DispatchQueue.main.async { s.importFiles([url]) }
+                    }
+                }
+                return true
+            }
+            .overlay(Group {
+                if dropTarget {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.accentColor.opacity(0.12))
+                        RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [10, 6]))
+                        Label(L("Drop MIDI or text songs here", "MIDI- oder Textlieder hier ablegen"), systemImage: "music.note.list")
+                            .font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.accentColor)
+                    }
+                    .padding(12)
+                }
+            })
         }
     }
 }

@@ -23,6 +23,16 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VER</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleVersion</key><string>$VER</string>
+  <key>NSHumanReadableCopyright</key><string>MIT licence © touchbar-piano contributors</string>
+  <key>CFBundleDocumentTypes</key><array>
+    <dict><key>CFBundleTypeName</key><string>MIDI file</string><key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>LSItemContentTypes</key><array><string>public.midi-audio</string></array></dict>
+    <dict><key>CFBundleTypeName</key><string>Song text</string><key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>LSItemContentTypes</key><array><string>public.plain-text</string></array></dict>
+  </array>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
